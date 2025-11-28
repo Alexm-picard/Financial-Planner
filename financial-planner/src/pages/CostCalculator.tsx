@@ -19,11 +19,10 @@ import {
   ListItem,
   ListItemText,
   Divider,
-  AppBar,
-  Toolbar,
-  IconButton
 } from '@mui/material';
-import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
+import PageHeader from '../components/layout/PageHeader';
+import StepIndicator from '../components/calculator/StepIndicator';
+import { colors, shadows } from '../design-tokens';
 
 interface RoomRate {
   type: string;
@@ -409,39 +408,57 @@ const CostCalculator: React.FC = () => {
     </Box>
   );
 
-  return (
-    <Box sx={{ flexGrow: 1 }}>
-      <AppBar position="static">
-        <Toolbar>
-          <IconButton
-            edge="start"
-            color="inherit"
-            onClick={() => navigate('/')}
-            sx={{ mr: 2 }}
-          >
-            <ArrowBackIcon />
-          </IconButton>
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Tuition Cost Calculator
-          </Typography>
-        </Toolbar>
-      </AppBar>
+  const stepLabels = [
+    'Year',
+    'Residency',
+    'Credits',
+    'Housing',
+    'Room',
+    'Meal Plan',
+    'Food',
+    'Scholarships',
+    'Summary',
+    'Total',
+  ];
 
-      <Container maxWidth="sm">
-        <Box sx={{ mt: 4, mb: 4 }}>
-          <Typography variant="h4" component="h1" gutterBottom>
-            Cost Calculator
-          </Typography>
+  return (
+    <Box>
+      <PageHeader
+        title="Tuition Cost Calculator"
+        subtitle="Calculate your semester costs step by step"
+      />
+
+      <Container maxWidth="md">
+        {/* Step Indicator */}
+        {step <= 10 && (
+          <StepIndicator
+            currentStep={step}
+            totalSteps={10}
+            stepLabels={stepLabels}
+          />
+        )}
+
+        <Box sx={{ mb: 4 }}>
 
           {step === 1 && (
-            <Box sx={{ mt: 3 }}>
+            <Box
+              sx={{
+                backgroundColor: '#FFFFFF',
+                borderRadius: '20px',
+                p: 4,
+                boxShadow: shadows.sm,
+                border: `1px solid ${colors.neutral[200]}`,
+              }}
+            >
               <FormControl fullWidth>
-                <FormLabel>What year of school will you be entering?</FormLabel>
+                <FormLabel sx={{ mb: 2, fontWeight: 600, color: colors.neutral[900] }}>
+                  What year of school will you be entering?
+                </FormLabel>
                 <Select
                   value={yearOfStudy}
                   onChange={handleYearChange}
                   displayEmpty
-                  sx={{ mb: 2 }}
+                  sx={{ mb: 3 }}
                 >
                   <MenuItem value="" disabled>Select your year</MenuItem>
                   <MenuItem value="1">First Year</MenuItem>
@@ -450,12 +467,19 @@ const CostCalculator: React.FC = () => {
                   <MenuItem value="4">Fourth Year</MenuItem>
                   <MenuItem value="4+">Fourth Year+</MenuItem>
                 </Select>
-                <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
-                  <Button 
-                    variant="contained" 
+                <Box sx={{ display: 'flex', gap: 2 }}>
+                  <Button
+                    variant="outlined"
+                    onClick={() => navigate('/')}
+                    sx={{ flex: 1 }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="contained"
                     onClick={handleYearSubmit}
                     disabled={!yearOfStudy}
-                    sx={{ width: '100%' }}
+                    sx={{ flex: 1 }}
                   >
                     Continue
                   </Button>

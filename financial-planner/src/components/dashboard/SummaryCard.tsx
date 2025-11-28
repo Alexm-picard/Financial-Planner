@@ -1,6 +1,7 @@
 import React from 'react';
 import { Card, CardContent, Typography, Box, useTheme } from '@mui/material';
 import { TrendingUp, TrendingDown } from '@mui/icons-material';
+import { colors as designColors, shadows, transitions } from '../../design-tokens';
 
 interface SummaryCardProps {
   title: string;
@@ -24,28 +25,28 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
 
   const colorConfig = {
     primary: { 
-      main: '#6366F1', 
-      light: '#818CF8', 
-      bg: 'linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.05) 100%)',
-      iconBg: 'rgba(99, 102, 241, 0.1)',
+      main: designColors.primary[500], 
+      light: designColors.primary[400], 
+      bg: `linear-gradient(135deg, ${designColors.primary[50]} 0%, rgba(139, 92, 246, 0.05) 100%)`,
+      iconBg: designColors.primary[50],
     },
     success: { 
-      main: '#10B981', 
-      light: '#34D399', 
-      bg: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%)',
-      iconBg: 'rgba(16, 185, 129, 0.1)',
+      main: designColors.success[500], 
+      light: designColors.success[600], 
+      bg: `linear-gradient(135deg, ${designColors.success[50]} 0%, rgba(16, 185, 129, 0.05) 100%)`,
+      iconBg: designColors.success[50],
     },
     error: { 
-      main: '#EF4444', 
-      light: '#F87171', 
-      bg: 'linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(239, 68, 68, 0.05) 100%)',
-      iconBg: 'rgba(239, 68, 68, 0.1)',
+      main: designColors.error[500], 
+      light: designColors.error[600], 
+      bg: `linear-gradient(135deg, ${designColors.error[50]} 0%, rgba(239, 68, 68, 0.05) 100%)`,
+      iconBg: designColors.error[50],
     },
     warning: { 
-      main: '#F59E0B', 
-      light: '#FBBF24', 
-      bg: 'linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(245, 158, 11, 0.05) 100%)',
-      iconBg: 'rgba(245, 158, 11, 0.1)',
+      main: designColors.warning[500], 
+      light: designColors.warning[600], 
+      bg: `linear-gradient(135deg, ${designColors.warning[50]} 0%, rgba(245, 158, 11, 0.05) 100%)`,
+      iconBg: designColors.warning[50],
     },
   };
 
@@ -56,10 +57,12 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
       sx={{
         height: '100%',
         background: colors.bg,
-        border: '1px solid rgba(226, 232, 240, 0.8)',
-        borderRadius: 3,
+        border: `1px solid ${designColors.neutral[200]}`,
+        borderRadius: '20px',
         position: 'relative',
         overflow: 'hidden',
+        boxShadow: shadows.sm,
+        transition: `all ${transitions.base}`,
         '&::before': {
           content: '""',
           position: 'absolute',
@@ -69,6 +72,10 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
           height: '4px',
           background: `linear-gradient(90deg, ${colors.main} 0%, ${colors.light} 100%)`,
         },
+        '&:hover': {
+          boxShadow: shadows.lg,
+          transform: 'translateY(-2px)',
+        },
       }}
     >
       <CardContent sx={{ p: 3.5 }}>
@@ -76,13 +83,13 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
           <Box
             sx={{
               p: 2,
-              borderRadius: 2.5,
+              borderRadius: '12px',
               background: colors.iconBg,
               color: colors.main,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              transition: 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+              transition: transitions.base,
               '&:hover': {
                 transform: 'scale(1.05)',
               },
@@ -98,21 +105,21 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
                 gap: 0.75,
                 px: 1.5,
                 py: 0.75,
-                borderRadius: 2,
+                borderRadius: '8px',
                 backgroundColor: trend.isPositive 
-                  ? 'rgba(16, 185, 129, 0.1)' 
-                  : 'rgba(239, 68, 68, 0.1)',
+                  ? designColors.success[50]
+                  : designColors.error[50],
               }}
             >
               {trend.isPositive ? (
-                <TrendingUp sx={{ fontSize: 16, color: theme.palette.success.main }} />
+                <TrendingUp sx={{ fontSize: 16, color: designColors.success[500] }} />
               ) : (
-                <TrendingDown sx={{ fontSize: 16, color: theme.palette.error.main }} />
+                <TrendingDown sx={{ fontSize: 16, color: designColors.error[500] }} />
               )}
               <Typography
                 variant="caption"
                 sx={{
-                  color: trend.isPositive ? theme.palette.success.main : theme.palette.error.main,
+                  color: trend.isPositive ? designColors.success[500] : designColors.error[500],
                   fontWeight: 600,
                   fontSize: '0.75rem',
                 }}
@@ -126,7 +133,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
           variant="body2" 
           sx={{ 
             mb: 1.5, 
-            color: '#64748B',
+            color: designColors.neutral[500],
             fontSize: '0.875rem',
             fontWeight: 500,
             letterSpacing: '0.01em',

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box,
-  Container,
   Typography,
   Paper,
   FormControl,
@@ -17,21 +16,21 @@ import {
   CircularProgress,
   Alert,
   Snackbar,
-  AppBar,
-  Toolbar,
-  IconButton,
-  TextField
+  TextField,
+  Divider,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useSettings } from '../context/SettingsContext';
 import { auth } from '../firebase-config';
 import { updateProfile } from 'firebase/auth';
-import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
+import PageHeader from '../components/layout/PageHeader';
+import PremiumCard from '../components/atoms/PremiumCard';
+import { colors, shadows } from '../design-tokens';
 
 const Settings: React.FC = () => {
   const { settings, updateSettings, isLoading, error, availableThemes } = useSettings();
   const navigate = useNavigate();
-  const [showSuccess, setShowSuccess] = React.useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
   const [displayName, setDisplayName] = useState('');
 
   useEffect(() => {
@@ -84,9 +83,9 @@ const Settings: React.FC = () => {
 
     try {
       await updateProfile(auth.currentUser, {
-        displayName: displayName
+        displayName: displayName,
       });
-      // Show success message or handle success
+      setShowSuccess(true);
     } catch (error) {
       console.error('Error updating profile:', error);
     }
@@ -94,47 +93,38 @@ const Settings: React.FC = () => {
 
   if (isLoading) {
     return (
-      <Container maxWidth="md">
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
-          <CircularProgress />
-        </Box>
-      </Container>
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+        <CircularProgress />
+      </Box>
     );
   }
 
   return (
-    <Box sx={{ flexGrow: 1 }}>
-      <AppBar position="static">
-        <Toolbar>
-          <IconButton
-            edge="start"
-            color="inherit"
-            onClick={() => navigate('/')}
-            sx={{ mr: 2 }}
-          >
-            <ArrowBackIcon />
-          </IconButton>
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Settings
-          </Typography>
-        </Toolbar>
-      </AppBar>
+    <Box>
+      <PageHeader
+        title="Settings"
+        subtitle="Customize your financial planner experience"
+      />
 
-      <Container maxWidth="md">
-        <Box sx={{ my: 4 }}>
-          {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
-            </Alert>
-          )}
+      {error && (
+        <Alert severity="error" sx={{ mb: 4, borderRadius: '12px' }}>
+          {error}
+        </Alert>
+      )}
 
-          <Paper elevation={3} sx={{ p: 3 }}>
-            <Typography variant="h4" gutterBottom>
-              Settings
-            </Typography>
-
-            <Paper sx={{ p: 3, mb: 3 }}>
-              <Typography variant="h6" gutterBottom>
+      <Grid container spacing={3}>
+        {/* Theme Settings */}
+        <Grid item xs={12} md={6}>
+          <PremiumCard>
+            <Box sx={{ p: 3 }}>
+              <Typography
+                variant="h6"
+                sx={{
+                  fontWeight: 700,
+                  mb: 3,
+                  color: colors.neutral[900],
+                }}
+              >
                 Theme
               </Typography>
               <Grid container spacing={3}>
@@ -145,12 +135,26 @@ const Settings: React.FC = () => {
                         checked={settings.darkMode}
                         onChange={handleSwitchChange}
                         name="darkMode"
+                        sx={{
+                          '& .MuiSwitch-switchBase.Mui-checked': {
+                            color: colors.primary[500],
+                          },
+                          '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                            backgroundColor: colors.primary[500],
+                          },
+                        }}
                       />
                     }
                     label="Dark Mode"
+                    sx={{
+                      '& .MuiFormControlLabel-label': {
+                        fontWeight: 500,
+                        color: colors.neutral[700],
+                      },
+                    }}
                   />
                 </Grid>
-                
+
                 <Grid item xs={12}>
                   <FormControl fullWidth>
                     <InputLabel>Color Theme</InputLabel>
@@ -169,10 +173,22 @@ const Settings: React.FC = () => {
                   </FormControl>
                 </Grid>
               </Grid>
-            </Paper>
+            </Box>
+          </PremiumCard>
+        </Grid>
 
-            <Paper sx={{ p: 3, mb: 3 }}>
-              <Typography variant="h6" gutterBottom>
+        {/* Typography Settings */}
+        <Grid item xs={12} md={6}>
+          <PremiumCard>
+            <Box sx={{ p: 3 }}>
+              <Typography
+                variant="h6"
+                sx={{
+                  fontWeight: 700,
+                  mb: 3,
+                  color: colors.neutral[900],
+                }}
+              >
                 Typography
               </Typography>
               <Grid container spacing={3}>
@@ -192,9 +208,18 @@ const Settings: React.FC = () => {
                     </Select>
                   </FormControl>
                 </Grid>
-                
+
                 <Grid item xs={12}>
-                  <Typography gutterBottom>Font Size: {settings.fontSize}px</Typography>
+                  <Typography
+                    gutterBottom
+                    sx={{
+                      fontWeight: 500,
+                      color: colors.neutral[700],
+                      mb: 2,
+                    }}
+                  >
+                    Font Size: {settings.fontSize}px
+                  </Typography>
                   <Slider
                     value={settings.fontSize}
                     onChange={handleFontSizeChange}
@@ -202,17 +227,40 @@ const Settings: React.FC = () => {
                     max={24}
                     step={1}
                     marks
+                    sx={{
+                      '& .MuiSlider-thumb': {
+                        color: colors.primary[500],
+                      },
+                      '& .MuiSlider-track': {
+                        color: colors.primary[500],
+                      },
+                      '& .MuiSlider-rail': {
+                        color: colors.neutral[200],
+                      },
+                    }}
                   />
                 </Grid>
               </Grid>
-            </Paper>
+            </Box>
+          </PremiumCard>
+        </Grid>
 
-            <Paper sx={{ p: 3, mb: 3 }}>
-              <Typography variant="h6" gutterBottom>
+        {/* Formatting Settings */}
+        <Grid item xs={12} md={6}>
+          <PremiumCard>
+            <Box sx={{ p: 3 }}>
+              <Typography
+                variant="h6"
+                sx={{
+                  fontWeight: 700,
+                  mb: 3,
+                  color: colors.neutral[900],
+                }}
+              >
                 Formatting
               </Typography>
               <Grid container spacing={3}>
-                <Grid item xs={12} sm={6}>
+                <Grid item xs={12}>
                   <FormControl fullWidth>
                     <InputLabel>Currency Symbol</InputLabel>
                     <Select
@@ -228,8 +276,8 @@ const Settings: React.FC = () => {
                     </Select>
                   </FormControl>
                 </Grid>
-                
-                <Grid item xs={12} sm={6}>
+
+                <Grid item xs={12}>
                   <FormControl fullWidth>
                     <InputLabel>Date Format</InputLabel>
                     <Select
@@ -245,10 +293,22 @@ const Settings: React.FC = () => {
                   </FormControl>
                 </Grid>
               </Grid>
-            </Paper>
+            </Box>
+          </PremiumCard>
+        </Grid>
 
-            <Paper sx={{ p: 3, mb: 3 }}>
-              <Typography variant="h6" gutterBottom>
+        {/* Profile Settings */}
+        <Grid item xs={12} md={6}>
+          <PremiumCard>
+            <Box sx={{ p: 3 }}>
+              <Typography
+                variant="h6"
+                sx={{
+                  fontWeight: 700,
+                  mb: 3,
+                  color: colors.neutral[900],
+                }}
+              >
                 Profile
               </Typography>
               <form onSubmit={handleSubmit}>
@@ -266,40 +326,40 @@ const Settings: React.FC = () => {
                     <Button
                       type="submit"
                       variant="contained"
-                      color="primary"
+                      fullWidth
+                      sx={{
+                        minHeight: 48,
+                      }}
                     >
                       Update Profile
                     </Button>
                   </Grid>
                 </Grid>
               </form>
-            </Paper>
-
-            <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={() => navigate('/')}
-              >
-                Back to Dashboard
-              </Button>
             </Box>
-          </Paper>
-        </Box>
+          </PremiumCard>
+        </Grid>
+      </Grid>
 
-        <Snackbar
-          open={showSuccess}
-          autoHideDuration={3000}
+      <Snackbar
+        open={showSuccess}
+        autoHideDuration={3000}
+        onClose={() => setShowSuccess(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
           onClose={() => setShowSuccess(false)}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+          severity="success"
+          sx={{
+            borderRadius: '12px',
+            boxShadow: shadows.md,
+          }}
         >
-          <Alert onClose={() => setShowSuccess(false)} severity="success">
-            Settings saved successfully
-          </Alert>
-        </Snackbar>
-      </Container>
+          Settings saved successfully
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
 
-export default Settings; 
+export default Settings;

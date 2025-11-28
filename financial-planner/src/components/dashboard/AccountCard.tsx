@@ -16,6 +16,7 @@ import {
 } from '@mui/icons-material';
 import { Account } from '../../types';
 import { formatCurrency } from '../../utils/formatters';
+import { colors as designColors, shadows, transitions } from '../../design-tokens';
 
 interface AccountCardProps {
   account: Account;
@@ -46,11 +47,12 @@ const AccountCard: React.FC<AccountCardProps> = ({
         cursor: onClick ? 'pointer' : 'default',
         height: '100%',
         background: '#FFFFFF',
-        border: '1px solid rgba(226, 232, 240, 0.8)',
-        borderRadius: 3,
-        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        border: `1px solid ${designColors.neutral[200]}`,
+        borderRadius: '20px',
+        transition: `all ${transitions.base}`,
         position: 'relative',
         overflow: 'hidden',
+        boxShadow: shadows.sm,
         '&::before': {
           content: '""',
           position: 'absolute',
@@ -59,17 +61,17 @@ const AccountCard: React.FC<AccountCardProps> = ({
           right: 0,
           height: '3px',
           background: isDebt
-            ? 'linear-gradient(90deg, #EF4444 0%, #F87171 100%)'
-            : 'linear-gradient(90deg, #10B981 0%, #34D399 100%)',
+            ? `linear-gradient(90deg, ${designColors.error[500]} 0%, ${designColors.error[600]} 100%)`
+            : `linear-gradient(90deg, ${designColors.success[500]} 0%, ${designColors.success[600]} 100%)`,
           opacity: 0,
-          transition: 'opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          transition: transitions.base,
         },
         '&:hover': {
           borderColor: isDebt 
-            ? 'rgba(239, 68, 68, 0.3)' 
-            : 'rgba(16, 185, 129, 0.3)',
+            ? designColors.error[300]
+            : designColors.success[300],
           transform: 'translateY(-4px)',
-          boxShadow: '0px 20px 25px -5px rgba(15, 23, 42, 0.1), 0px 10px 10px -5px rgba(15, 23, 42, 0.04)',
+          boxShadow: shadows.lg,
           '&::before': {
             opacity: 1,
           },
@@ -82,16 +84,16 @@ const AccountCard: React.FC<AccountCardProps> = ({
             <Box
               sx={{
                 p: 2,
-                borderRadius: 2.5,
+                borderRadius: '12px',
                 backgroundColor: isDebt
-                  ? 'rgba(239, 68, 68, 0.1)'
-                  : 'rgba(16, 185, 129, 0.1)',
-                color: isDebt ? theme.palette.error.main : theme.palette.success.main,
+                  ? designColors.error[50]
+                  : designColors.success[50],
+                color: isDebt ? designColors.error[500] : designColors.success[500],
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexShrink: 0,
-                transition: 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                transition: transitions.base,
                 '&:hover': {
                   transform: 'scale(1.05)',
                 },
@@ -106,7 +108,7 @@ const AccountCard: React.FC<AccountCardProps> = ({
                   fontWeight: 700, 
                   mb: 1, 
                   fontSize: '1.125rem',
-                  color: '#0F172A',
+                  color: designColors.neutral[900],
                   lineHeight: 1.3,
                 }}
               >
@@ -117,13 +119,13 @@ const AccountCard: React.FC<AccountCardProps> = ({
                 size="small"
                 sx={{
                   backgroundColor: isDebt
-                    ? 'rgba(239, 68, 68, 0.1)'
-                    : 'rgba(16, 185, 129, 0.1)',
-                  color: isDebt ? theme.palette.error.main : theme.palette.success.main,
+                    ? designColors.error[50]
+                    : designColors.success[50],
+                  color: isDebt ? designColors.error[500] : designColors.success[500],
                   fontWeight: 600,
                   fontSize: '0.75rem',
                   height: 24,
-                  borderRadius: 1.5,
+                  borderRadius: '8px',
                   '& .MuiChip-label': {
                     px: 1.5,
                   },
@@ -136,12 +138,12 @@ const AccountCard: React.FC<AccountCardProps> = ({
               size="small"
               onClick={handleEdit}
               sx={{
-                color: '#64748B',
+                color: designColors.neutral[500],
                 '&:hover': {
-                  backgroundColor: 'rgba(99, 102, 241, 0.08)',
-                  color: '#6366F1',
+                  backgroundColor: designColors.primary[50],
+                  color: designColors.primary[500],
                 },
-                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                transition: transitions.base,
               }}
             >
               <EditIcon fontSize="small" />
@@ -154,7 +156,7 @@ const AccountCard: React.FC<AccountCardProps> = ({
             variant="h3"
             sx={{
               fontWeight: 800,
-              color: isDebt ? theme.palette.error.main : theme.palette.success.main,
+              color: isDebt ? designColors.error[500] : designColors.success[500],
               mb: 1.5,
               fontSize: '2rem',
               lineHeight: 1.2,
@@ -167,7 +169,7 @@ const AccountCard: React.FC<AccountCardProps> = ({
             <Typography 
               variant="body2" 
               sx={{ 
-                color: '#64748B',
+                color: designColors.neutral[500],
                 fontSize: '0.875rem',
                 lineHeight: 1.6,
               }}
@@ -184,16 +186,16 @@ const AccountCard: React.FC<AccountCardProps> = ({
               alignItems: 'center',
               gap: 1.25,
               p: 2,
-              borderRadius: 2,
-              backgroundColor: 'rgba(245, 158, 11, 0.08)',
-              border: '1px solid rgba(245, 158, 11, 0.2)',
+              borderRadius: '12px',
+              backgroundColor: designColors.warning[50],
+              border: `1px solid ${designColors.warning[200]}`,
             }}
           >
-            <CalendarIcon sx={{ fontSize: 18, color: theme.palette.warning.main }} />
+            <CalendarIcon sx={{ fontSize: 18, color: designColors.warning[500] }} />
             <Typography 
               variant="body2" 
               sx={{ 
-                color: theme.palette.warning.main, 
+                color: designColors.warning[500], 
                 fontWeight: 600,
                 fontSize: '0.875rem',
               }}
@@ -208,11 +210,11 @@ const AccountCard: React.FC<AccountCardProps> = ({
         )}
 
         {account.monthlyPayment && account.monthlyPayment.amount > 0 && (
-          <Box sx={{ mt: 3, pt: 3, borderTop: '1px solid rgba(226, 232, 240, 0.8)' }}>
+          <Box sx={{ mt: 3, pt: 3, borderTop: `1px solid ${designColors.neutral[200]}` }}>
             <Typography 
               variant="body2" 
               sx={{ 
-                color: '#64748B',
+                color: designColors.neutral[500],
                 mb: 1,
                 fontSize: '0.875rem',
                 fontWeight: 500,
@@ -225,7 +227,7 @@ const AccountCard: React.FC<AccountCardProps> = ({
               sx={{ 
                 fontWeight: 700, 
                 fontSize: '1.25rem',
-                color: '#0F172A',
+                color: designColors.neutral[900],
               }}
             >
               {formatCurrency(account.monthlyPayment.amount)}
@@ -234,7 +236,7 @@ const AccountCard: React.FC<AccountCardProps> = ({
               <Typography 
                 variant="caption" 
                 sx={{ 
-                  color: '#94A3B8',
+                  color: designColors.neutral[400],
                   fontSize: '0.75rem',
                   mt: 0.5,
                   display: 'block',
