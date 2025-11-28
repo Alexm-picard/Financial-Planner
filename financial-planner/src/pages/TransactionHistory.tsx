@@ -1,124 +1,176 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
-  Container,
+  Box,
   Typography,
+  Card,
+  CardContent,
   List,
   ListItem,
   ListItemText,
-  Box,
-  AppBar,
-  Toolbar,
-  IconButton,
-  Divider
+  Divider,
+  Chip,
+  CircularProgress,
+  useTheme,
 } from '@mui/material';
-import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
-import { auth, db } from '../firebase-config';
-import { collection, query, where, getDocs } from 'firebase/firestore';
-
-interface Transaction {
-  id?: string;
-  accountId: string;
-  accountName: string;
-  userId: string;
-  type: 'create' | 'update' | 'delete';
-  previousBalance?: number;
-  newBalance?: number;
-  timestamp: Date;
-  description: string;
-}
+import { History as HistoryIcon } from '@mui/icons-material';
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { auth } from '../firebase-config';
+import { useTransactions } from '../hooks/useTransactions';
+import { Transaction } from '../types';
+import { formatCurrency, formatDateTime } from '../utils/formatters';
 
 const TransactionHistory: React.FC = () => {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const navigate = useNavigate();
+  const [user] = useAuthState(auth);
+  const { transactions, isLoading } = useTransactions(user?.uid || null);
+  const theme = useTheme();
 
-  useEffect(() => {
-    const fetchTransactions = async () => {
-      const user = auth.currentUser;
-      if (!user) {
-        navigate('/login');
-        return;
-      }
+  const getTransactionColor = (type: Transaction['type']) => {
+    switch (type) {
+      case 'create':
+        return theme.palette.success.main;
+      case 'update':
+        return theme.palette.info.main;
+      case 'delete':
+        return theme.palette.error.main;
+      default:
+        return theme.palette.text.secondary;
+    }
+  };
 
-      try {
-        const transactionsRef = collection(db, 'transactions');
-        const q = query(transactionsRef, where('userId', '==', user.uid));
-        const querySnapshot = await getDocs(q);
-        
-        const transactionsData: Transaction[] = [];
-        querySnapshot.forEach((doc) => {
-          const data = doc.data();
-          transactionsData.push({
-            id: doc.id,
-            ...data,
-            timestamp: data.timestamp.toDate()
-          } as Transaction);
-        });
-        
-        setTransactions(transactionsData.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()));
-      } catch (error) {
-        console.error('Error fetching transactions:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchTransactions();
-  }, [navigate]);
+  const getTransactionLabel = (type: Transaction['type']) => {
+    switch (type) {
+      case 'create':
+        return 'Created';
+      case 'update':
+        return 'Updated';
+      case 'delete':
+        return 'Deleted';
+      default:
+        return type;
+    }
+  };
 
   return (
-    <Box sx={{ flexGrow: 1 }}>
-      <AppBar position="static">
-        <Toolbar>
-          <IconButton
-            edge="start"
-            color="inherit"
-            onClick={() => navigate('/')}
-            sx={{ mr: 2 }}
+    <Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4 }}>
+          <Box
+            sx={{
+              p: 1.5,
+              borderRadius: 2,
+              backgroundColor: theme.palette.primary.light + '20',
+              color: theme.palette.primary.main,
+            }}
           >
-            <ArrowBackIcon />
-          </IconButton>
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+            <HistoryIcon sx={{ fontSize: 32 }} />
+          </Box>
+          <Typography variant="h4" sx={{ fontWeight: 700 }}>
             Transaction History
           </Typography>
-        </Toolbar>
-      </AppBar>
+        </Box>
 
-      <Container sx={{ mt: 4 }}>
         {isLoading ? (
-          <Typography>Loading transactions...</Typography>
+          <Box sx={{ display: 'flex', justifyContent: 'center', my: 8 }}>
+            <CircularProgress />
+          </Box>
         ) : transactions.length === 0 ? (
-          <Typography>No transactions found.</Typography>
+          <Card
+            sx={{
+              textAlign: 'center',
+              py: 8,
+              px: 3,
+              border: '2px dashed',
+              borderColor: 'divider',
+            }}
+          >
+            <HistoryIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+            <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+              No Transactions Yet
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Your transaction history will appear here once you start managing your accounts.
+            </Typography>
+          </Card>
         ) : (
-          <List>
-            {transactions.map((transaction) => (
-              <React.Fragment key={transaction.id}>
-                <ListItem>
-                  <ListItemText
-                    primary={transaction.description}
-                    secondary={
-                      <Box>
-                        <Typography variant="body2" color="text.secondary">
-                          {transaction.timestamp.toLocaleString()}
-                        </Typography>
-                        {transaction.type === 'update' && (
-                          <Typography variant="body2" color="text.secondary">
-                            Balance changed from ${Math.abs(transaction.previousBalance || 0).toFixed(2)} to ${Math.abs(transaction.newBalance || 0).toFixed(2)}
+          <Card>
+            <CardContent>
+              <List>
+                {transactions.map((transaction, index) => (
+                  <React.Fragment key={transaction.id}>
+                    <ListItem
+                      sx={{
+                        py: 2,
+                        '&:hover': {
+                          backgroundColor: 'action.hover',
+                          borderRadius: 1,
+                        },
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
+                        <Chip
+                          label={getTransactionLabel(transaction.type)}
+                          size="small"
+                          sx={{
+                            backgroundColor: getTransactionColor(transaction.type) + '20',
+                            color: getTransactionColor(transaction.type),
+                            fontWeight: 600,
+                            minWidth: 80,
+                          }}
+                        />
+                        <Box sx={{ flexGrow: 1 }}>
+                          <ListItemText
+                            primary={
+                              <Typography variant="body1" sx={{ fontWeight: 600, mb: 0.5 }}>
+                                {transaction.description}
+                              </Typography>
+                            }
+                            secondary={
+                              <Box>
+                                <Typography variant="body2" color="text.secondary">
+                                  {formatDateTime(transaction.timestamp)}
+                                </Typography>
+                                {transaction.type === 'update' && (
+                                  <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                                    Balance: {formatCurrency(Math.abs(transaction.previousBalance || 0))} →{' '}
+                                    {formatCurrency(Math.abs(transaction.newBalance || 0))}
+                                  </Typography>
+                                )}
+                                {transaction.type === 'create' && transaction.newBalance !== undefined && (
+                                  <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                                    Starting Balance: {formatCurrency(Math.abs(transaction.newBalance))}
+                                  </Typography>
+                                )}
+                              </Box>
+                            }
+                          />
+                        </Box>
+                        {transaction.type === 'update' && transaction.newBalance !== undefined && (
+                          <Typography
+                            variant="h6"
+                            sx={{
+                              fontWeight: 700,
+                              color:
+                                transaction.newBalance > (transaction.previousBalance || 0)
+                                  ? theme.palette.success.main
+                                  : theme.palette.error.main,
+                            }}
+                          >
+                            {transaction.newBalance > (transaction.previousBalance || 0) ? '+' : ''}
+                            {formatCurrency(
+                              Math.abs(transaction.newBalance - (transaction.previousBalance || 0))
+                            )}
                           </Typography>
                         )}
                       </Box>
-                    }
-                  />
-                </ListItem>
-                <Divider />
-              </React.Fragment>
-            ))}
-          </List>
+                    </ListItem>
+                    {index < transactions.length - 1 && <Divider />}
+                  </React.Fragment>
+                ))}
+              </List>
+            </CardContent>
+          </Card>
         )}
-      </Container>
-    </Box>
+      </Box>
   );
 };
 
-export default TransactionHistory; 
+export default TransactionHistory;

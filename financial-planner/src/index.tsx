@@ -1,9 +1,12 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { ThemeProvider, CssBaseline } from '@mui/material';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 import { BrowserRouter } from 'react-router-dom';
 import { SettingsProvider } from './context/SettingsContext';
+import theme from './theme/theme';
+import './index.css';
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
@@ -11,9 +14,12 @@ const root = ReactDOM.createRoot(
 root.render(
   <React.StrictMode>
     <BrowserRouter>
-      <SettingsProvider>
-        <App />
-      </SettingsProvider>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <SettingsProvider>
+          <App />
+        </SettingsProvider>
+      </ThemeProvider>
     </BrowserRouter>
   </React.StrictMode>
 );

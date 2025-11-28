@@ -1,252 +1,260 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Container, 
-  Typography, 
-  Box, 
-  Card, 
-  CardContent,
+import React, { useState } from 'react';
+import {
+  Box,
+  Typography,
+  Grid,
+  Button,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  Button,
   TextField,
+  FormControl,
+  FormLabel,
+  RadioGroup,
+  FormControlLabel,
+  Radio,
+  InputLabel,
+  Select,
+  MenuItem,
   CircularProgress,
-  AppBar,
-  Toolbar,
-  IconButton
+  Tabs,
+  Tab,
+  Chip,
 } from '@mui/material';
-import { Edit as EditIcon, ArrowBack as ArrowBackIcon } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
-import { auth, db } from '../firebase-config';
-import { collection, query, where, getDocs, doc, updateDoc, deleteDoc } from 'firebase/firestore';
-
-interface Account {
-  id?: string;
-  name: string;
-  balance: number;
-  dueDate: string | null;
-  description: string;
-  type: 'savings' | 'debt';
-  userId: string;
-  monthlyPayment?: {
-    amount: number;
-    linkedAccountId: string;
-    nextPaymentDate: string;
-  } | null;
-}
+import { Add as AddIcon, Edit as EditIcon } from '@mui/icons-material';
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { auth } from '../firebase-config';
+import { useAccounts } from '../hooks/useAccounts';
+import { useTransactions } from '../hooks/useTransactions';
+import AccountCard from '../components/dashboard/AccountCard';
+import { Account } from '../types';
+import { formatCurrency } from '../utils/formatters';
+import { doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { db } from '../firebase-config';
 
 const Accounts: React.FC = () => {
-  const navigate = useNavigate();
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [user] = useAuthState(auth);
+  const { accounts, isLoading, updateAccount, deleteAccount } = useAccounts(user?.uid || null);
+  const { addTransaction } = useTransactions(user?.uid || null);
+  const [selectedTab, setSelectedTab] = useState<'all' | 'savings' | 'debt'>('all');
   const [isEditDialogOpen, setIsEditDialogOpen] = useState<boolean>(false);
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
 
-  useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      if (user) {
-        fetchAccounts(user.uid);
-      } else {
-        setAccounts([]);
-        setIsLoading(false);
-      }
-    });
+  const savingsAccounts = accounts.filter(acc => acc.type === 'savings');
+  const debtAccounts = accounts.filter(acc => acc.type === 'debt');
 
-    return () => unsubscribe();
-  }, []);
+  const filteredAccounts = selectedTab === 'all' 
+    ? accounts 
+    : selectedTab === 'savings' 
+    ? savingsAccounts 
+    : debtAccounts;
 
-  const fetchAccounts = async (uid: string) => {
-    try {
-      setIsLoading(true);
-      const accountsRef = collection(db, 'accounts');
-      const q = query(accountsRef, where('userId', '==', uid));
-      const querySnapshot = await getDocs(q);
-      
-      const accountsData: Account[] = [];
-      querySnapshot.forEach((doc) => {
-        accountsData.push({ id: doc.id, ...doc.data() } as Account);
-      });
-      
-      setAccounts(accountsData);
-    } catch (error) {
-      console.error('Error fetching accounts:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleEditClick = (account: Account) => {
-    setSelectedAccount({...account});
+  const handleEdit = (account: Account) => {
+    setSelectedAccount({ ...account });
     setIsEditDialogOpen(true);
   };
 
   const handleUpdateAccount = async () => {
-    if (!auth.currentUser || !selectedAccount || !selectedAccount.id) return;
-    
-    try {
-      const accountRef = doc(db, 'accounts', selectedAccount.id);
-      const newBalance = selectedAccount.type === 'debt' ? -Math.abs(selectedAccount.balance) : Math.abs(selectedAccount.balance);
-      
-      const updateData: any = {
-        balance: newBalance
-      };
+    if (!user || !selectedAccount?.id) return;
 
-      if (selectedAccount.type === 'debt') {
-        updateData.dueDate = selectedAccount.dueDate;
-      }
-      
-      // If it's a debt account and balance is 0, delete it
+    try {
+      const newBalance = selectedAccount.type === 'debt'
+        ? -Math.abs(selectedAccount.balance)
+        : Math.abs(selectedAccount.balance);
+
       if (selectedAccount.type === 'debt' && newBalance === 0) {
-        await deleteDoc(accountRef);
+        await deleteAccount(selectedAccount.id);
+        await addTransaction({
+          accountId: selectedAccount.id,
+          accountName: selectedAccount.name,
+          userId: user.uid,
+          type: 'delete',
+          previousBalance: selectedAccount.balance,
+          description: `Paid off and deleted account ${selectedAccount.name}`,
+        });
       } else {
-        await updateDoc(accountRef, updateData);
+        await updateAccount(selectedAccount.id, {
+          ...selectedAccount,
+          balance: newBalance,
+        });
+
+        await addTransaction({
+          accountId: selectedAccount.id,
+          accountName: selectedAccount.name,
+          userId: user.uid,
+          type: 'update',
+          previousBalance: selectedAccount.balance,
+          newBalance: newBalance,
+          description: `Updated account ${selectedAccount.name}`,
+        });
       }
-      
+
       setIsEditDialogOpen(false);
       setSelectedAccount(null);
-      fetchAccounts(auth.currentUser.uid);
     } catch (error) {
       console.error('Error updating account:', error);
     }
   };
 
-  const handleEditInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!selectedAccount) return;
-    
-    const { name, value } = e.target;
-    setSelectedAccount(prev => ({
-      ...prev!,
-      [name]: name === 'balance' ? parseFloat(value) || 0 : value
-    }));
-  };
-
   return (
-    <Box sx={{ flexGrow: 1 }}>
-      <AppBar position="static">
-        <Toolbar>
-          <IconButton
-            edge="start"
-            color="inherit"
-            onClick={() => navigate('/')}
-            sx={{ mr: 2 }}
+    <Box>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+          <Typography variant="h4" sx={{ fontWeight: 700 }}>
+            Accounts
+          </Typography>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => window.location.href = '/'}
           >
-            <ArrowBackIcon />
-          </IconButton>
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Accounts
-          </Typography>
-        </Toolbar>
-      </AppBar>
+            Add Account
+          </Button>
+        </Box>
 
-      <Container>
-        <Box sx={{ mt: 4 }}>
-          <Typography variant="h4" component="h1" gutterBottom>
-            Accounts
-          </Typography>
-          
-          {isLoading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-              <CircularProgress />
-            </Box>
-          ) : accounts.length === 0 ? (
-            <Typography variant="body1" color="text.secondary">
-              No accounts found.
+        <Box sx={{ mb: 4 }}>
+          <Tabs
+            value={selectedTab}
+            onChange={(_, newValue) => setSelectedTab(newValue)}
+            sx={{
+              borderBottom: 1,
+              borderColor: 'divider',
+              mb: 3,
+            }}
+          >
+            <Tab label={`All (${accounts.length})`} value="all" />
+            <Tab label={`Savings (${savingsAccounts.length})`} value="savings" />
+            <Tab label={`Debt (${debtAccounts.length})`} value="debt" />
+          </Tabs>
+        </Box>
+
+        {isLoading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', my: 8 }}>
+            <CircularProgress />
+          </Box>
+        ) : filteredAccounts.length === 0 ? (
+          <Box
+            sx={{
+              textAlign: 'center',
+              py: 8,
+              px: 3,
+              backgroundColor: 'background.paper',
+              borderRadius: 3,
+              border: '2px dashed',
+              borderColor: 'divider',
+            }}
+          >
+            <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+              No {selectedTab === 'all' ? '' : selectedTab} accounts found
             </Typography>
-          ) : (
-            <Box sx={{ display: 'grid', gap: 2, mt: 2 }}>
-              {accounts.map((account) => (
-                <Card key={account.id}>
-                  <CardContent>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Typography variant="h6">{account.name}</Typography>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Typography 
-                          variant="h5" 
-                          color={account.balance < 0 ? 'error.main' : 'success.main'}
-                        >
-                          ${Math.abs(account.balance).toFixed(2)}
-                        </Typography>
-                        <Button
-                          startIcon={<EditIcon />}
-                          onClick={() => handleEditClick(account)}
-                        >
-                          Edit
-                        </Button>
-                      </Box>
-                    </Box>
-                    {account.description && (
-                      <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                        {account.description}
-                      </Typography>
-                    )}
-                    {account.dueDate && (
-                      <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Typography variant="body2" color="text.secondary">
-                          Due Date
-                        </Typography>
-                        <Typography variant="body1" color="error.main">
-                          {new Date(account.dueDate + 'T00:00:00').toLocaleDateString()}
-                        </Typography>
-                      </Box>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </Box>
-          )}
+            <Typography variant="body2" color="text.secondary">
+              {selectedTab === 'all' 
+                ? 'Get started by adding your first account.'
+                : `You don't have any ${selectedTab} accounts yet.`}
+            </Typography>
+          </Box>
+        ) : (
+          <Grid container spacing={3}>
+            {filteredAccounts.map((account) => (
+              <Grid item xs={12} sm={6} md={4} key={account.id}>
+                <AccountCard
+                  account={account}
+                  onEdit={handleEdit}
+                  showActions={true}
+                />
+              </Grid>
+            ))}
+          </Grid>
+        )}
 
-          {/* Edit Account Dialog */}
-          <Dialog open={isEditDialogOpen} onClose={() => setIsEditDialogOpen(false)} maxWidth="sm" fullWidth>
-            <DialogTitle>Edit Account Balance</DialogTitle>
-            <DialogContent>
-              {selectedAccount && (
-                <>
+        {/* Edit Account Dialog */}
+        <Dialog open={isEditDialogOpen} onClose={() => setIsEditDialogOpen(false)} maxWidth="sm" fullWidth>
+          <DialogTitle>Edit Account</DialogTitle>
+          <DialogContent>
+            {selectedAccount && (
+              <>
+                <TextField
+                  autoFocus
+                  margin="dense"
+                  label="Account Name"
+                  fullWidth
+                  variant="outlined"
+                  value={selectedAccount.name}
+                  onChange={(e) => setSelectedAccount({ ...selectedAccount, name: e.target.value })}
+                  sx={{ mb: 2, mt: 1 }}
+                />
+                <TextField
+                  margin="dense"
+                  label="Description"
+                  fullWidth
+                  variant="outlined"
+                  multiline
+                  rows={2}
+                  value={selectedAccount.description}
+                  onChange={(e) => setSelectedAccount({ ...selectedAccount, description: e.target.value })}
+                  sx={{ mb: 2 }}
+                />
+                <TextField
+                  margin="dense"
+                  label="Amount"
+                  type="number"
+                  fullWidth
+                  variant="outlined"
+                  value={Math.abs(selectedAccount.balance)}
+                  onChange={(e) =>
+                    setSelectedAccount({ ...selectedAccount, balance: parseFloat(e.target.value) || 0 })
+                  }
+                  sx={{ mb: 2 }}
+                />
+                <FormControl component="fieldset" sx={{ mb: 2, width: '100%' }}>
+                  <FormLabel component="legend">Account Type</FormLabel>
+                  <RadioGroup
+                    row
+                    value={selectedAccount.type}
+                    onChange={(e) =>
+                      setSelectedAccount({
+                        ...selectedAccount,
+                        type: e.target.value as 'savings' | 'debt',
+                        dueDate:
+                          e.target.value === 'debt'
+                            ? selectedAccount.dueDate || new Date().toISOString().split('T')[0]
+                            : null,
+                      })
+                    }
+                  >
+                    <FormControlLabel value="savings" control={<Radio />} label="Savings/Asset" />
+                    <FormControlLabel value="debt" control={<Radio />} label="Debt/Liability" />
+                  </RadioGroup>
+                </FormControl>
+                {selectedAccount.type === 'debt' && (
                   <TextField
                     margin="dense"
-                    name="balance"
-                    label="Balance"
-                    type="number"
+                    label="Due Date"
+                    type="date"
                     fullWidth
                     variant="outlined"
-                    value={selectedAccount.balance}
-                    onChange={handleEditInputChange}
+                    value={selectedAccount.dueDate || ''}
+                    onChange={(e) => setSelectedAccount({ ...selectedAccount, dueDate: e.target.value })}
+                    InputLabelProps={{ shrink: true }}
                     sx={{ mb: 2 }}
                   />
-                  {selectedAccount.type === 'debt' && (
-                    <TextField
-                      margin="dense"
-                      name="dueDate"
-                      label="Due Date"
-                      type="date"
-                      fullWidth
-                      variant="outlined"
-                      value={selectedAccount.dueDate || ''}
-                      onChange={handleEditInputChange}
-                      InputLabelProps={{
-                        shrink: true,
-                      }}
-                      sx={{ mb: 2 }}
-                    />
-                  )}
-                </>
-              )}
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={() => setIsEditDialogOpen(false)}>Cancel</Button>
-              <Button 
-                onClick={handleUpdateAccount}
-                variant="contained"
-                color="primary"
-              >
-                Save
-              </Button>
-            </DialogActions>
-          </Dialog>
-        </Box>
-      </Container>
-    </Box>
+                )}
+              </>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setIsEditDialogOpen(false)}>Cancel</Button>
+            <Button
+              onClick={handleUpdateAccount}
+              variant="contained"
+              disabled={!selectedAccount?.name || (selectedAccount?.type === 'debt' && selectedAccount?.balance === 0)}
+            >
+              Save
+            </Button>
+          </DialogActions>
+        </Dialog>
+      </Box>
   );
 };
 
-export default Accounts; 
+export default Accounts;

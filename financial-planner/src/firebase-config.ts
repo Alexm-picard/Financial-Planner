@@ -4,12 +4,12 @@ import { getAuth } from 'firebase/auth';
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-    apiKey: "AIzaSyDZNLvS7P1ql4Eu3tPmfz0HfB1X7dGBVlo",
-    authDomain: "farhan-financial-planner.firebaseapp.com",
-    projectId: "farhan-financial-planner",
-    storageBucket: "farhan-financial-planner.firebasestorage.app",
-    messagingSenderId: "707602290141",
-    appId: "1:707602290141:web:6878a7a4d2a66411aad234"
+    apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
+    authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
+    projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
+    storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
+    appId: process.env.REACT_APP_FIREBASE_APP_ID
 };
 
 // Initialize Firebase

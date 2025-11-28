@@ -1,283 +1,261 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  Container, 
-  Typography, 
-  Box, 
-  Card, 
-  CardContent,
+import React, { useState, useMemo } from 'react';
+import {
+  Box,
+  Typography,
   Grid,
-  CircularProgress,
-  Button,
+  Card,
+  CardContent,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  AppBar,
-  Toolbar,
-  IconButton
+  Button,
+  CircularProgress,
+  useTheme,
 } from '@mui/material';
-import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
-import { 
-  LineChart, 
-  Line, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
   Legend,
-  ResponsiveContainer 
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
 } from 'recharts';
-import { auth, db } from '../firebase-config';
-import { collection, query, where, getDocs } from 'firebase/firestore';
-
-interface Account {
-  id?: string;
-  name: string;
-  balance: number;
-  type: 'savings' | 'debt';
-}
-
-interface Transaction {
-  id?: string;
-  accountId: string;
-  accountName: string;
-  type: 'create' | 'update' | 'delete';
-  previousBalance?: number;
-  newBalance?: number;
-  timestamp: Date;
-  description: string;
-}
-
-interface ChartData {
-  date: string;
-  balance: number;
-}
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { auth } from '../firebase-config';
+import { useAccounts } from '../hooks/useAccounts';
+import { useTransactions } from '../hooks/useTransactions';
+import AccountCard from '../components/dashboard/AccountCard';
+import { Account, ChartData } from '../types';
+import { formatCurrency } from '../utils/formatters';
 
 const Reports: React.FC = () => {
-  const navigate = useNavigate();
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [user] = useAuthState(auth);
+  const { accounts, isLoading } = useAccounts(user?.uid || null);
+  const { transactions } = useTransactions(user?.uid || null);
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
-  const [chartData, setChartData] = useState<ChartData[]>([]);
+  const theme = useTheme();
 
-  useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      if (user) {
-        fetchAccounts(user.uid);
-        fetchTransactions(user.uid);
-      } else {
-        setAccounts([]);
-        setTransactions([]);
-        setIsLoading(false);
-      }
-    });
+  const chartData = useMemo(() => {
+    if (!selectedAccount) return [];
 
-    return () => unsubscribe();
-  }, []);
-
-  const generateChartData = useCallback(() => {
-    if (!selectedAccount) return;
-
-    // Filter transactions for selected account
     const accountTransactions = transactions
       .filter(t => t.accountId === selectedAccount.id)
       .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
 
-    // Create chart data points
     const data: ChartData[] = [];
     let currentBalance = 0;
 
-    // Add initial balance if it's a create transaction
     const createTransaction = accountTransactions.find(t => t.type === 'create');
     if (createTransaction) {
       currentBalance = createTransaction.newBalance || 0;
       data.push({
-        date: createTransaction.timestamp.toLocaleDateString(),
-        balance: currentBalance
+        date: createTransaction.timestamp.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        balance: Math.abs(currentBalance),
       });
     }
 
-    // Add subsequent balance changes
     accountTransactions.forEach(transaction => {
       if (transaction.type === 'update') {
         currentBalance = transaction.newBalance || currentBalance;
         data.push({
-          date: transaction.timestamp.toLocaleDateString(),
-          balance: currentBalance
+          date: transaction.timestamp.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          balance: Math.abs(currentBalance),
         });
       }
     });
 
-    setChartData(data);
+    return data;
   }, [selectedAccount, transactions]);
 
-  useEffect(() => {
-    if (selectedAccount && transactions.length > 0) {
-      generateChartData();
-    }
-  }, [selectedAccount, transactions, generateChartData]);
+  const pieChartData = useMemo(() => {
+    const savings = accounts.filter(acc => acc.type === 'savings');
+    const debt = accounts.filter(acc => acc.type === 'debt');
+    
+    return [
+      {
+        name: 'Savings',
+        value: savings.reduce((sum, acc) => sum + Math.abs(acc.balance), 0),
+      },
+      {
+        name: 'Debt',
+        value: debt.reduce((sum, acc) => sum + Math.abs(acc.balance), 0),
+      },
+    ];
+  }, [accounts]);
 
-  const fetchAccounts = async (uid: string) => {
-    try {
-      setIsLoading(true);
-      const accountsRef = collection(db, 'accounts');
-      const q = query(accountsRef, where('userId', '==', uid));
-      const querySnapshot = await getDocs(q);
-      
-      const accountsData: Account[] = [];
-      querySnapshot.forEach((doc) => {
-        accountsData.push({ id: doc.id, ...doc.data() } as Account);
-      });
-      
-      setAccounts(accountsData);
-    } catch (error) {
-      console.error('Error fetching accounts:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const fetchTransactions = async (uid: string) => {
-    try {
-      const transactionsRef = collection(db, 'transactions');
-      const q = query(transactionsRef, where('userId', '==', uid));
-      const querySnapshot = await getDocs(q);
-      
-      const transactionsData: Transaction[] = [];
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        transactionsData.push({
-          id: doc.id,
-          ...data,
-          timestamp: data.timestamp.toDate()
-        } as Transaction);
-      });
-      
-      setTransactions(transactionsData.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()));
-    } catch (error) {
-      console.error('Error fetching transactions:', error);
-    }
-  };
-
-  const handleAccountClick = (account: Account) => {
-    setSelectedAccount(account);
-  };
-
-  const handleCloseDialog = () => {
-    setSelectedAccount(null);
-  };
+  const COLORS = [theme.palette.success.main, theme.palette.error.main];
 
   return (
-    <Box sx={{ flexGrow: 1 }}>
-      <AppBar position="static">
-        <Toolbar>
-          <IconButton
-            edge="start"
-            color="inherit"
-            onClick={() => navigate('/')}
-            sx={{ mr: 2 }}
-          >
-            <ArrowBackIcon />
-          </IconButton>
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Reports
-          </Typography>
-        </Toolbar>
-      </AppBar>
+    <Box>
+        <Typography variant="h4" sx={{ fontWeight: 700, mb: 4 }}>
+          Financial Reports
+        </Typography>
 
-      <Container>
-        <Box sx={{ mt: 4 }}>
-          <Typography variant="h4" component="h1" gutterBottom>
-            Reports
-          </Typography>
-          
-          {isLoading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-              <CircularProgress />
-            </Box>
-          ) : accounts.length === 0 ? (
-            <Typography variant="body1" color="text.secondary">
-              No accounts found.
+        {isLoading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', my: 8 }}>
+            <CircularProgress />
+          </Box>
+        ) : accounts.length === 0 ? (
+          <Box
+            sx={{
+              textAlign: 'center',
+              py: 8,
+              px: 3,
+              backgroundColor: 'background.paper',
+              borderRadius: 3,
+              border: '2px dashed',
+              borderColor: 'divider',
+            }}
+          >
+            <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+              No accounts found
             </Typography>
-          ) : (
+            <Typography variant="body2" color="text.secondary">
+              Add accounts to view financial reports and analytics.
+            </Typography>
+          </Box>
+        ) : (
+          <>
+            <Grid container spacing={3} sx={{ mb: 4 }}>
+              <Grid item xs={12} md={6}>
+                <Card>
+                  <CardContent>
+                    <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
+                      Asset Distribution
+                    </Typography>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <PieChart>
+                        <Pie
+                          data={pieChartData}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                          outerRadius={80}
+                          fill="#8884d8"
+                          dataKey="value"
+                        >
+                          {pieChartData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <Card>
+                  <CardContent>
+                    <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
+                      Account Overview
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      {accounts.slice(0, 5).map((account) => (
+                        <Box
+                          key={account.id}
+                          onClick={() => setSelectedAccount(account)}
+                          sx={{
+                            p: 2,
+                            borderRadius: 2,
+                            border: '1px solid',
+                            borderColor: 'divider',
+                            cursor: 'pointer',
+                            '&:hover': {
+                              backgroundColor: 'action.hover',
+                            },
+                          }}
+                        >
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                              {account.name}
+                            </Typography>
+                            <Typography
+                              variant="h6"
+                              sx={{
+                                fontWeight: 700,
+                                color: account.balance < 0 ? 'error.main' : 'success.main',
+                              }}
+                            >
+                              {formatCurrency(Math.abs(account.balance))}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      ))}
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Grid>
+            </Grid>
+
+            <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
+              Select an Account to View History
+            </Typography>
             <Grid container spacing={3}>
               {accounts.map((account) => (
                 <Grid item xs={12} sm={6} md={4} key={account.id}>
-                  <Card 
-                    sx={{ 
-                      cursor: 'pointer',
-                      '&:hover': {
-                        boxShadow: 3
-                      }
-                    }}
-                    onClick={() => handleAccountClick(account)}
-                  >
-                    <CardContent>
-                      <Typography variant="h6" gutterBottom>
-                        {account.name}
-                      </Typography>
-                      <Typography 
-                        variant="h5" 
-                        color={account.balance < 0 ? 'error.main' : 'success.main'}
-                      >
-                        ${Math.abs(account.balance).toFixed(2)}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {account.type === 'debt' ? 'Debt Account' : 'Savings Account'}
-                      </Typography>
-                    </CardContent>
-                  </Card>
+                  <AccountCard
+                    account={account}
+                    onClick={() => setSelectedAccount(account)}
+                  />
                 </Grid>
               ))}
             </Grid>
-          )}
+          </>
+        )}
 
-          {/* Transaction History Dialog */}
-          <Dialog 
-            open={Boolean(selectedAccount)} 
-            onClose={handleCloseDialog}
-            maxWidth="md"
-            fullWidth
-          >
-            <DialogTitle>
-              Transaction History - {selectedAccount?.name}
-            </DialogTitle>
-            <DialogContent>
-              {chartData.length > 0 ? (
-                <Box sx={{ height: 400, mt: 2 }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={chartData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="date" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Line 
-                        type="monotone" 
-                        dataKey="balance" 
-                        name="Balance" 
-                        stroke={selectedAccount?.type === 'debt' ? '#f44336' : '#4caf50'} 
-                        activeDot={{ r: 8 }} 
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </Box>
-              ) : (
-                <Typography variant="body1" color="text.secondary" sx={{ mt: 2 }}>
+        {/* Account History Dialog */}
+        <Dialog
+          open={Boolean(selectedAccount)}
+          onClose={() => setSelectedAccount(null)}
+          maxWidth="md"
+          fullWidth
+        >
+          <DialogTitle>
+            Transaction History - {selectedAccount?.name}
+          </DialogTitle>
+          <DialogContent>
+            {chartData.length > 0 ? (
+              <Box sx={{ height: 400, mt: 2 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" />
+                    <YAxis tickFormatter={(value) => formatCurrency(value)} />
+                    <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                    <Legend />
+                    <Line
+                      type="monotone"
+                      dataKey="balance"
+                      name="Balance"
+                      stroke={selectedAccount?.type === 'debt' ? theme.palette.error.main : theme.palette.success.main}
+                      strokeWidth={2}
+                      activeDot={{ r: 8 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </Box>
+            ) : (
+              <Box sx={{ textAlign: 'center', py: 4 }}>
+                <Typography variant="body1" color="text.secondary">
                   No transaction history available for this account.
                 </Typography>
-              )}
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={handleCloseDialog}>Close</Button>
-            </DialogActions>
-          </Dialog>
-        </Box>
-      </Container>
-    </Box>
+              </Box>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setSelectedAccount(null)}>Close</Button>
+          </DialogActions>
+        </Dialog>
+      </Box>
   );
 };
 
-export default Reports; 
+export default Reports;

@@ -2,13 +2,11 @@ const MockComponent = () => {
     return { type: 'div', props: { children: 'Mock Component' } };
 };
 
-module.exports = {
-    LineChart: MockComponent,
-    Line: MockComponent,
-    XAxis: MockComponent,
-    YAxis: MockComponent,
-    CartesianGrid: MockComponent,
-    Tooltip: MockComponent,
-    Legend: MockComponent,
-    ResponsiveContainer: MockComponent
-};
+export const LineChart = MockComponent;
+export const Line = MockComponent;
+export const XAxis = MockComponent;
+export const YAxis = MockComponent;
+export const CartesianGrid = MockComponent;
+export const Tooltip = MockComponent;
+export const Legend = MockComponent;
+export const ResponsiveContainer = MockComponent;

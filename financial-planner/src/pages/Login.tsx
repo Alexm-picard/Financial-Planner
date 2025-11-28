@@ -1,33 +1,28 @@
-import { LockOutlined } from "@mui/icons-material";
-import { FirebaseError } from "firebase/app"; // Import FirebaseError
+import React, { useState } from 'react';
 import {
   Container,
-  CssBaseline,
   Box,
-  Avatar,
   Typography,
   TextField,
   Button,
-  Grid,
   Alert,
-} from "@mui/material";
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { 
-  auth 
-} from "../firebase-config";
-import { 
-  signInWithEmailAndPassword, 
-  signInWithPopup,
-  GoogleAuthProvider 
-} from "firebase/auth";
+  Link,
+  Divider,
+  useTheme,
+} from '@mui/material';
+import { AccountBalance, Google } from '@mui/icons-material';
+import { FirebaseError } from 'firebase/app';
+import { useNavigate } from 'react-router-dom';
+import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { auth } from '../firebase-config';
 
-const Login = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+const Login: React.FC = () => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const theme = useTheme();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,32 +30,29 @@ const Login = () => {
     setLoading(true);
 
     try {
-      // Email/Password Sign In
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      console.log("Logged in user:", userCredential.user);
-      navigate('/'); // Redirect to dashboard after successful login
+      await signInWithEmailAndPassword(auth, email, password);
+      navigate('/');
     } catch (err) {
-      // Handle specific Firebase authentication errors
-      if (err instanceof FirebaseError) { // Properly type err
+      if (err instanceof FirebaseError) {
         switch (err.code) {
           case 'auth/invalid-credential':
-            setError("Invalid email or password. Please try again.");
+            setError('Invalid email or password. Please try again.');
             break;
           case 'auth/user-not-found':
-            setError("No user found with this email address.");
+            setError('No user found with this email address.');
             break;
           case 'auth/wrong-password':
-            setError("Incorrect password. Please try again.");
+            setError('Incorrect password. Please try again.');
             break;
           case 'auth/invalid-email':
-            setError("Invalid email format.");
+            setError('Invalid email format.');
             break;
           default:
-            setError("An error occurred. Please try again.");
+            setError('An error occurred. Please try again.');
         }
       } else {
-        setError("An unexpected error occurred.");
-        console.error("Unexpected error:", err);
+        setError('An unexpected error occurred.');
+        console.error('Unexpected error:', err);
       }
     } finally {
       setLoading(false);
@@ -72,102 +64,141 @@ const Login = () => {
     setLoading(true);
 
     try {
-      // Google Sign In
       const googleProvider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, googleProvider);
-      console.log("Google sign-in user:", result.user);
-      navigate('/'); // Redirect to dashboard after successful login
+      await signInWithPopup(auth, googleProvider);
+      navigate('/');
     } catch (err) {
-      //setError("Google sign-in failed. Please try again.");
-      console.error("Google sign-in error:", err);
+      console.error('Google sign-in error:', err);
+      setError('Google sign-in failed. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Container component="main" maxWidth="xs">
-      <CssBaseline />
-      <Box
-        sx={{
-          marginTop: 8,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-        }}
-      >
-        <Avatar sx={{ m: 1, bgcolor: 'secondary.main' }}>
-          <LockOutlined />
-        </Avatar>
-        <Typography component="h1" variant="h5">
-          Sign in
-        </Typography>
-        
-        {error && (
-          <Alert 
-            severity="error" 
-            sx={{ width: '100%', mt: 2 }}
-          >
-            {error}
-          </Alert>
-        )}
-        
-        <Box component="form" onSubmit={handleLogin} noValidate sx={{ mt: 1 }}>
-          <TextField
-            margin="normal"
-            required
-            fullWidth
-            id="email"
-            label="Email Address"
-            name="email"
-            autoComplete="email"
-            autoFocus
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-          <TextField
-            margin="normal"
-            required
-            fullWidth
-            name="password"
-            label="Password"
-            type="password"
-            id="password"
-            autoComplete="current-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          
-          <Button
-            type="submit"
-            fullWidth
-            variant="contained"
-            sx={{ mt: 3, mb: 2 }}
-            disabled={loading}
-          >
-            {loading ? "Signing In..." : "Sign In"}
-          </Button>
-          
+    <Box
+      sx={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
+      }}
+    >
+      <Container maxWidth="sm">
+        <Box
+          sx={{
+            backgroundColor: 'background.paper',
+            borderRadius: 4,
+            boxShadow: '0px 8px 32px rgba(0, 0, 0, 0.12)',
+            p: 4,
+          }}
+        >
+          <Box sx={{ textAlign: 'center', mb: 4 }}>
+            <Box
+              sx={{
+                display: 'inline-flex',
+                p: 2,
+                borderRadius: 2,
+                backgroundColor: theme.palette.primary.light + '20',
+                color: theme.palette.primary.main,
+                mb: 2,
+              }}
+            >
+              <AccountBalance sx={{ fontSize: 48 }} />
+            </Box>
+            <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
+              Welcome Back
+            </Typography>
+            <Typography variant="body1" color="text.secondary">
+              Sign in to your Financial Planner account
+            </Typography>
+          </Box>
+
+          {error && (
+            <Alert severity="error" sx={{ mb: 3 }}>
+              {error}
+            </Alert>
+          )}
+
+          <Box component="form" onSubmit={handleLogin} sx={{ mb: 3 }}>
+            <TextField
+              margin="normal"
+              required
+              fullWidth
+              id="email"
+              label="Email Address"
+              name="email"
+              autoComplete="email"
+              autoFocus
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              sx={{ mb: 2 }}
+            />
+            <TextField
+              margin="normal"
+              required
+              fullWidth
+              name="password"
+              label="Password"
+              type="password"
+              id="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              sx={{ mb: 3 }}
+            />
+
+            <Button
+              type="submit"
+              fullWidth
+              variant="contained"
+              size="large"
+              disabled={loading}
+              sx={{ mb: 2, py: 1.5 }}
+            >
+              {loading ? 'Signing In...' : 'Sign In'}
+            </Button>
+          </Box>
+
+          <Divider sx={{ my: 3 }}>
+            <Typography variant="body2" color="text.secondary">
+              OR
+            </Typography>
+          </Divider>
+
           <Button
             fullWidth
             variant="outlined"
+            size="large"
             onClick={handleGoogleSignIn}
             disabled={loading}
-            sx={{ mb: 2 }}
+            startIcon={<Google />}
+            sx={{ mb: 3, py: 1.5 }}
           >
-            {loading ? "Signing In..." : "Sign In with Google"}
+            Continue with Google
           </Button>
-          
-          <Grid container justifyContent="flex-end">
-            <Grid item>
-              <Link to="/register">
-                Don't have an account? Register
+
+          <Box sx={{ textAlign: 'center' }}>
+            <Typography variant="body2" color="text.secondary">
+              Don't have an account?{' '}
+              <Link
+                href="/register"
+                sx={{
+                  color: theme.palette.primary.main,
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                  '&:hover': {
+                    textDecoration: 'underline',
+                  },
+                }}
+              >
+                Sign Up
               </Link>
-            </Grid>
-          </Grid>
+            </Typography>
+          </Box>
         </Box>
-      </Box>
-    </Container>
+      </Container>
+    </Box>
   );
 };
 
