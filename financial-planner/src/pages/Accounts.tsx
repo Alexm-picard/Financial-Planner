@@ -98,15 +98,36 @@ const Accounts: React.FC = () => {
   };
 
   return (
-    <Box>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
-          <Typography variant="h4" sx={{ fontWeight: 700 }}>
-            Accounts
-          </Typography>
+      <Box>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 6 }}>
+          <Box>
+            <Typography 
+              variant="h4" 
+              sx={{ 
+                fontWeight: 800, 
+                mb: 0.5,
+                color: '#0F172A',
+                letterSpacing: '-0.02em',
+              }}
+            >
+              Accounts
+            </Typography>
+            <Typography 
+              variant="subtitle1" 
+              sx={{ 
+                color: '#64748B',
+              }}
+            >
+              Manage your savings and debt accounts
+            </Typography>
+          </Box>
           <Button
             variant="contained"
             startIcon={<AddIcon />}
             onClick={() => window.location.href = '/'}
+            sx={{
+              minHeight: 48,
+            }}
           >
             Add Account
           </Button>

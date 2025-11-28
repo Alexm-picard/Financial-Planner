@@ -51,21 +51,41 @@ const TransactionHistory: React.FC = () => {
   };
 
   return (
-    <Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4 }}>
-          <Box
-            sx={{
-              p: 1.5,
-              borderRadius: 2,
-              backgroundColor: theme.palette.primary.light + '20',
-              color: theme.palette.primary.main,
-            }}
-          >
-            <HistoryIcon sx={{ fontSize: 32 }} />
+      <Box>
+        <Box sx={{ mb: 6 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+            <Box
+              sx={{
+                p: 2,
+                borderRadius: 2.5,
+                backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                color: '#6366F1',
+              }}
+            >
+              <HistoryIcon sx={{ fontSize: 32 }} />
+            </Box>
+            <Box>
+              <Typography 
+                variant="h4" 
+                sx={{ 
+                  fontWeight: 800,
+                  color: '#0F172A',
+                  letterSpacing: '-0.02em',
+                }}
+              >
+                Transaction History
+              </Typography>
+              <Typography 
+                variant="subtitle1" 
+                sx={{ 
+                  color: '#64748B',
+                  mt: 0.5,
+                }}
+              >
+                View all your account transactions
+              </Typography>
+            </Box>
           </Box>
-          <Typography variant="h4" sx={{ fontWeight: 700 }}>
-            Transaction History
-          </Typography>
         </Box>
 
         {isLoading ? (

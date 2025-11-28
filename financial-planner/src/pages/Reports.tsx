@@ -92,10 +92,28 @@ const Reports: React.FC = () => {
   const COLORS = [theme.palette.success.main, theme.palette.error.main];
 
   return (
-    <Box>
-        <Typography variant="h4" sx={{ fontWeight: 700, mb: 4 }}>
-          Financial Reports
-        </Typography>
+      <Box>
+        <Box sx={{ mb: 6 }}>
+          <Typography 
+            variant="h4" 
+            sx={{ 
+              fontWeight: 800, 
+              mb: 0.5,
+              color: '#0F172A',
+              letterSpacing: '-0.02em',
+            }}
+          >
+            Financial Reports
+          </Typography>
+          <Typography 
+            variant="subtitle1" 
+            sx={{ 
+              color: '#64748B',
+            }}
+          >
+            Analyze your financial trends and account history
+          </Typography>
+        </Box>
 
         {isLoading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', my: 8 }}>

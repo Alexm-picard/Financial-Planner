@@ -88,19 +88,29 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   };
 
   const drawer = (
-    <Box>
+    <Box sx={{ backgroundColor: '#FFFFFF', height: '100%', display: 'flex', flexDirection: 'column' }}>
       <Toolbar
         sx={{
-          background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
+          background: 'linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)',
           color: 'white',
+          minHeight: '72px !important',
+          px: 3,
         }}
       >
-        <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 700 }}>
+        <Typography 
+          variant="h6" 
+          noWrap 
+          component="div" 
+          sx={{ 
+            fontWeight: 700, 
+            fontSize: '1.25rem',
+            letterSpacing: '-0.01em',
+          }}
+        >
           Financial Planner
         </Typography>
       </Toolbar>
-      <Divider />
-      <List sx={{ pt: 2 }}>
+      <List sx={{ pt: 3, px: 2, flex: 1 }}>
         {menuItems.map((item) => {
           const isActive = location.pathname === item.path;
           return (
@@ -112,19 +122,25 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
               }}
               sx={{
                 cursor: 'pointer',
-                backgroundColor: isActive ? theme.palette.primary.light + '15' : 'transparent',
-                borderLeft: isActive ? `4px solid ${theme.palette.primary.main}` : '4px solid transparent',
+                backgroundColor: isActive ? 'rgba(99, 102, 241, 0.1)' : 'transparent',
+                borderRadius: 2.5,
+                mb: 0.75,
+                borderLeft: isActive ? '3px solid #6366F1' : '3px solid transparent',
                 '&:hover': {
-                  backgroundColor: theme.palette.primary.light + '10',
+                  backgroundColor: isActive 
+                    ? 'rgba(99, 102, 241, 0.12)' 
+                    : 'rgba(15, 23, 42, 0.04)',
+                  transform: 'translateX(2px)',
                 },
                 py: 1.5,
-                px: 3,
+                px: 2.5,
+                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
               }}
             >
               <ListItemIcon
                 sx={{
-                  color: isActive ? theme.palette.primary.main : theme.palette.text.secondary,
-                  minWidth: 40,
+                  color: isActive ? theme.palette.primary.main : '#64748B',
+                  minWidth: 44,
                 }}
               >
                 {item.icon}
@@ -132,8 +148,10 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
               <ListItemText
                 primary={item.text}
                 primaryTypographyProps={{
-                  fontWeight: isActive ? 600 : 400,
-                  color: isActive ? theme.palette.primary.main : 'inherit',
+                  fontWeight: isActive ? 600 : 500,
+                  fontSize: '0.9375rem',
+                  color: isActive ? '#0F172A' : '#334155',
+                  letterSpacing: '0.01em',
                 }}
               />
             </ListItem>
@@ -150,9 +168,10 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
         sx={{
           width: { md: `calc(100% - ${DRAWER_WIDTH}px)` },
           ml: { md: `${DRAWER_WIDTH}px` },
-          backgroundColor: 'white',
+          backgroundColor: '#FFFFFF',
           color: theme.palette.text.primary,
-          boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.08)',
+          boxShadow: '0px 1px 3px rgba(0, 0, 0, 0.1), 0px 1px 2px rgba(0, 0, 0, 0.06)',
+          borderBottom: '1px solid rgba(0, 0, 0, 0.08)',
         }}
       >
         <Toolbar>
@@ -165,7 +184,18 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
           >
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1, fontWeight: 600 }}>
+          <Typography 
+            variant="h6" 
+            noWrap 
+            component="div" 
+            sx={{ 
+              flexGrow: 1, 
+              fontWeight: 700, 
+              color: '#0F172A', 
+              fontSize: '1.25rem',
+              letterSpacing: '-0.01em',
+            }}
+          >
             {menuItems.find(item => item.path === location.pathname)?.text || 'Dashboard'}
           </Typography>
           {user && (
@@ -231,7 +261,8 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
             '& .MuiDrawer-paper': {
               boxSizing: 'border-box',
               width: DRAWER_WIDTH,
-              borderRight: `1px solid ${theme.palette.divider}`,
+              borderRight: '1px solid rgba(0, 0, 0, 0.08)',
+              backgroundColor: '#FFFFFF',
             },
           }}
           open
@@ -243,9 +274,11 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
         component="main"
         sx={{
           flexGrow: 1,
-          p: 3,
+          p: { xs: 3, sm: 4, md: 5 },
           width: { md: `calc(100% - ${DRAWER_WIDTH}px)` },
-          mt: { xs: 7, md: 8 },
+          mt: { xs: 8, md: 9 },
+          backgroundColor: '#FAFBFC',
+          minHeight: 'calc(100vh - 72px)',
         }}
       >
         {children}

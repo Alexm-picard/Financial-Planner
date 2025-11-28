@@ -278,42 +278,64 @@ const Home: React.FC = () => {
   const debtAccounts = accounts.filter(acc => acc.type === 'debt');
 
   return (
-    <Container maxWidth="xl">
+      <Container maxWidth="xl" sx={{ maxWidth: '1400px !important' }}>
         {/* Summary Cards */}
-        <Grid container spacing={3} sx={{ mb: 4 }}>
-          <Grid item xs={12} sm={6} md={3}>
-            <SummaryCard
-              title="Net Worth"
-              value={formatCurrency(summary.netWorth)}
-              icon={<AccountBalance />}
-              color={summary.netWorth >= 0 ? 'success' : 'error'}
-            />
+        <Box sx={{ mb: 6 }}>
+          <Typography 
+            variant="h4" 
+            sx={{ 
+              fontWeight: 800, 
+              mb: 0.5,
+              color: '#0F172A',
+              letterSpacing: '-0.02em',
+            }}
+          >
+            Financial Overview
+          </Typography>
+          <Typography 
+            variant="subtitle1" 
+            sx={{ 
+              color: '#64748B',
+              mb: 4,
+            }}
+          >
+            Track your net worth, assets, and liabilities at a glance
+          </Typography>
+          <Grid container spacing={3}>
+            <Grid item xs={12} sm={6} md={3}>
+              <SummaryCard
+                title="Net Worth"
+                value={formatCurrency(summary.netWorth)}
+                icon={<AccountBalance />}
+                color={summary.netWorth >= 0 ? 'success' : 'error'}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <SummaryCard
+                title="Total Assets"
+                value={formatCurrency(summary.totalAssets)}
+                icon={<TrendingUp />}
+                color="success"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <SummaryCard
+                title="Total Liabilities"
+                value={formatCurrency(summary.totalLiabilities)}
+                icon={<TrendingDown />}
+                color="error"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <SummaryCard
+                title="Accounts"
+                value={`${accounts.length} Total`}
+                icon={<AccountBalance />}
+                color="primary"
+              />
+            </Grid>
           </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <SummaryCard
-              title="Total Assets"
-              value={formatCurrency(summary.totalAssets)}
-              icon={<TrendingUp />}
-              color="success"
-            />
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <SummaryCard
-              title="Total Liabilities"
-              value={formatCurrency(summary.totalLiabilities)}
-              icon={<TrendingDown />}
-              color="error"
-            />
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <SummaryCard
-              title="Accounts"
-              value={`${accounts.length} Total`}
-              icon={<AccountBalance />}
-              color="primary"
-            />
-          </Grid>
-        </Grid>
+        </Box>
 
         {/* Accounts Section */}
         {accountsLoading ? (
@@ -324,19 +346,48 @@ const Home: React.FC = () => {
           <Box
             sx={{
               textAlign: 'center',
-              py: 8,
-              px: 3,
-              backgroundColor: 'background.paper',
-              borderRadius: 3,
-              border: '2px dashed',
-              borderColor: 'divider',
+              py: 10,
+              px: 4,
+              backgroundColor: '#FFFFFF',
+              borderRadius: 4,
+              border: '2px dashed rgba(226, 232, 240, 0.8)',
+              maxWidth: 600,
+              mx: 'auto',
             }}
           >
-            <AccountBalance sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-            <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, mb: 1 }}>
+            <Box
+              sx={{
+                display: 'inline-flex',
+                p: 3,
+                borderRadius: 3,
+                backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                color: '#6366F1',
+                mb: 3,
+              }}
+            >
+              <AccountBalance sx={{ fontSize: 64 }} />
+            </Box>
+            <Typography 
+              variant="h4" 
+              gutterBottom 
+              sx={{ 
+                fontWeight: 700, 
+                mb: 1.5,
+                color: '#0F172A',
+                letterSpacing: '-0.01em',
+              }}
+            >
               No Accounts Yet
             </Typography>
-            <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+            <Typography 
+              variant="subtitle1" 
+              sx={{ 
+                color: '#64748B',
+                mb: 4,
+                maxWidth: 400,
+                mx: 'auto',
+              }}
+            >
               Get started by adding your first account to track your finances.
             </Typography>
             <Button
@@ -344,6 +395,10 @@ const Home: React.FC = () => {
               size="large"
               startIcon={<AddIcon />}
               onClick={() => setIsAddDialogOpen(true)}
+              sx={{
+                minHeight: 52,
+                px: 4,
+              }}
             >
               Add Account
             </Button>
@@ -351,9 +406,26 @@ const Home: React.FC = () => {
         ) : (
           <>
             {savingsAccounts.length > 0 && (
-              <Box sx={{ mb: 4 }}>
-                <Typography variant="h5" sx={{ fontWeight: 600, mb: 3 }}>
+              <Box sx={{ mb: 6 }}>
+                <Typography 
+                  variant="h4" 
+                  sx={{ 
+                    fontWeight: 700, 
+                    mb: 1,
+                    color: '#0F172A',
+                    letterSpacing: '-0.01em',
+                  }}
+                >
                   Savings & Assets
+                </Typography>
+                <Typography 
+                  variant="subtitle1" 
+                  sx={{ 
+                    color: '#64748B',
+                    mb: 4,
+                  }}
+                >
+                  Your savings accounts and assets
                 </Typography>
                 <Grid container spacing={3}>
                   {savingsAccounts.map((account) => (
@@ -372,9 +444,26 @@ const Home: React.FC = () => {
             )}
 
             {debtAccounts.length > 0 && (
-              <Box sx={{ mb: 4 }}>
-                <Typography variant="h5" sx={{ fontWeight: 600, mb: 3 }}>
+              <Box sx={{ mb: 6 }}>
+                <Typography 
+                  variant="h4" 
+                  sx={{ 
+                    fontWeight: 700, 
+                    mb: 1,
+                    color: '#0F172A',
+                    letterSpacing: '-0.01em',
+                  }}
+                >
                   Debts & Liabilities
+                </Typography>
+                <Typography 
+                  variant="subtitle1" 
+                  sx={{ 
+                    color: '#64748B',
+                    mb: 4,
+                  }}
+                >
+                  Track and manage your debts
                 </Typography>
                 <Grid container spacing={3}>
                   {debtAccounts.map((account) => (
@@ -400,12 +489,22 @@ const Home: React.FC = () => {
           aria-label="add account"
           sx={{
             position: 'fixed',
-            bottom: 24,
-            right: 24,
+            bottom: 32,
+            right: 32,
+            width: 64,
+            height: 64,
+            background: 'linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)',
+            boxShadow: '0px 10px 15px -3px rgba(99, 102, 241, 0.4), 0px 4px 6px -2px rgba(99, 102, 241, 0.2)',
+            '&:hover': {
+              background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)',
+              transform: 'scale(1.05)',
+              boxShadow: '0px 20px 25px -5px rgba(99, 102, 241, 0.4), 0px 10px 10px -5px rgba(99, 102, 241, 0.2)',
+            },
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
           }}
           onClick={() => setIsAddDialogOpen(true)}
         >
-          <AddIcon />
+          <AddIcon sx={{ fontSize: 28 }} />
         </Fab>
 
         {/* Add Account Dialog */}
