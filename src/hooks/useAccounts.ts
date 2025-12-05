@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, query, where, getDocs, addDoc, doc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase-config';
+import { accountService } from '@/services/accountService';
 import { Account } from '@/types';
 
 export const useAccounts = (userId: string | null) => {
@@ -12,14 +11,15 @@ export const useAccounts = (userId: string | null) => {
     try {
       setIsLoading(true);
       setError(null);
-      const accountsRef = collection(db, 'accounts');
-      const q = query(accountsRef, where('userId', '==', uid));
-      const querySnapshot = await getDocs(q);
+      const response = await accountService.getAll(uid);
       
-      const accountsData: Account[] = [];
-      querySnapshot.forEach((doc) => {
-        accountsData.push({ id: doc.id, ...doc.data() } as Account);
-      });
+      // Convert MongoDB _id to id and format dates
+      const accountsData: Account[] = response.map((account: any) => ({
+        id: account.id || account._id,
+        ...account,
+        createdAt: account.createdAt ? new Date(account.createdAt) : undefined,
+        updatedAt: account.updatedAt ? new Date(account.updatedAt) : undefined,
+      })) as Account[];
       
       setAccounts(accountsData);
     } catch (err) {
@@ -44,19 +44,16 @@ export const useAccounts = (userId: string | null) => {
     if (!userId) throw new Error('User not authenticated');
     
     try {
-      const accountsRef = collection(db, 'accounts');
       const newBalance = account.type === 'debt' ? -Math.abs(account.balance) : Math.abs(account.balance);
       
-      const docRef = await addDoc(accountsRef, {
+      const response = await accountService.create({
         ...account,
         userId,
         balance: newBalance,
-        createdAt: Timestamp.now(),
-        updatedAt: Timestamp.now(),
       });
       
       await fetchAccounts(userId);
-      return docRef.id;
+      return response.id || response._id;
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Failed to add account');
       setError(error);
@@ -68,8 +65,7 @@ export const useAccounts = (userId: string | null) => {
     if (!userId) throw new Error('User not authenticated');
     
     try {
-      const accountRef = doc(db, 'accounts', accountId);
-      const updateData: any = { ...updates, updatedAt: Timestamp.now() };
+      const updateData: any = { ...updates };
       
       if (updates.balance !== undefined && updates.type) {
         updateData.balance = updates.type === 'debt' 
@@ -77,7 +73,7 @@ export const useAccounts = (userId: string | null) => {
           : Math.abs(updates.balance);
       }
       
-      await updateDoc(accountRef, updateData);
+      await accountService.update(accountId, updateData);
       await fetchAccounts(userId);
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Failed to update account');
@@ -90,8 +86,7 @@ export const useAccounts = (userId: string | null) => {
     if (!userId) throw new Error('User not authenticated');
     
     try {
-      const accountRef = doc(db, 'accounts', accountId);
-      await deleteDoc(accountRef);
+      await accountService.delete(accountId);
       await fetchAccounts(userId);
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Failed to delete account');
@@ -110,4 +105,3 @@ export const useAccounts = (userId: string | null) => {
     deleteAccount,
   };
 };
-

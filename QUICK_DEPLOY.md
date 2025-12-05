@@ -1,86 +1,161 @@
-# Quick Deploy Guide 🚀
+# Quick Deployment Reference
 
-Fastest way to deploy your Financial Planner app.
-
-## Firebase Hosting (Recommended - 5 minutes)
-
-### Step 1: Install Firebase CLI (if not installed)
+## One-Command Deployment (After Initial Setup)
 
 ```bash
-npm install -g firebase-tools
+cd /home/ubuntu/financial-planner && ./deploy.sh
 ```
 
-### Step 2: Login
+## Manual Step-by-Step Commands
+
+### 1. Initial Setup (One-time)
 
 ```bash
-firebase login
+# Update system
+sudo apt update && sudo apt upgrade -y
+
+# Install Node.js 18
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+sudo apt-get install -y nodejs
+
+# Install PM2
+sudo npm install -g pm2
+
+# Install Nginx
+sudo apt install -y nginx
+sudo systemctl enable nginx
 ```
 
-### Step 3: Initialize Hosting (if not done)
+### 2. Deploy Backend
 
 ```bash
-firebase init hosting
+# Navigate to project
+cd /home/ubuntu/financial-planner
+
+# Install backend dependencies
+cd backend
+npm install --production
+
+# Create .env file (copy from template)
+cp env.template .env
+nano .env  # Edit with your values
+
+# Create logs directory
+mkdir -p logs
+
+# Start with PM2
+cd ..
+pm2 start ecosystem.config.cjs --env production
+pm2 save
+pm2 startup  # Follow the command it shows
 ```
 
-**Quick answers:**
-- Select project: `financial-planner-final-final`
-- Public directory: `dist`
-- Single-page app: `Yes`
-- GitHub auto-deploy: `No` (or Yes if you want)
-
-### Step 4: Build & Deploy
+### 3. Deploy Frontend
 
 ```bash
+# Navigate to project root
+cd /home/ubuntu/financial-planner
+
+# Create production env file
+cp env.production.template .env.production
+nano .env.production  # Edit with your values
+
+# Install and build
+npm install
 npm run build
-firebase deploy --only hosting
+
+# Copy to web directory
+sudo mkdir -p /var/www/financial-planner/dist
+sudo chown -R $USER:$USER /var/www/financial-planner
+cp -r dist/* /var/www/financial-planner/dist/
 ```
 
-### Done! 🎉
-
-Your app is live at: `https://financial-planner-final-final.web.app`
-
----
-
-## Vercel (Alternative - 3 minutes)
-
-### Via Web (Easiest):
-
-1. Go to https://vercel.com
-2. Sign in with GitHub
-3. Click "Add New Project"
-4. Import your repo
-5. Settings:
-   - Framework: Vite
-   - Build: `npm run build`
-   - Output: `dist`
-6. Add environment variables (all 6 Firebase vars)
-7. Deploy!
-
-### Via CLI:
+### 4. Configure Nginx
 
 ```bash
-npm install -g vercel
-vercel
+# Copy config
+sudo cp nginx.conf /etc/nginx/sites-available/financial-planner
+
+# Enable site
+sudo ln -s /etc/nginx/sites-available/financial-planner /etc/nginx/sites-enabled/
+sudo rm /etc/nginx/sites-enabled/default  # Remove default
+
+# Test and reload
+sudo nginx -t
+sudo systemctl reload nginx
 ```
 
----
+### 5. Verify
 
-## One-Command Deploy Script
-
-Create a deploy script in `package.json`:
-
-```json
-"scripts": {
-  "deploy": "npm run build && firebase deploy --only hosting"
-}
-```
-
-Then just run:
 ```bash
-npm run deploy
+# Test backend
+curl http://localhost:5001/api/health
+
+# Test through Nginx
+curl http://localhost/api/health
+
+# Check PM2
+pm2 status
+pm2 logs financial-planner-backend
 ```
 
----
+## Environment Variables Quick Reference
 
-## That's it! Your app is live! 🎊
+### Backend (.env)
+```env
+PORT=5001
+HOST=0.0.0.0
+NODE_ENV=production
+FRONTEND_URL=https://financial-planner.alexpicard.info
+MONGO_URI=mongodb://127.0.0.1:27017/harmonyhub
+```
+
+### Frontend (.env.production)
+```env
+VITE_API_URL=/api
+VITE_AUTH0_DOMAIN=your-tenant.auth0.com
+VITE_AUTH0_CLIENT_ID=your_client_id
+VITE_AUTH0_AUDIENCE=https://your-api-audience
+```
+
+## Common Commands
+
+```bash
+# Restart backend
+pm2 restart financial-planner-backend
+
+# View logs
+pm2 logs financial-planner-backend
+
+# Rebuild frontend
+cd /home/ubuntu/financial-planner
+npm run build
+cp -r dist/* /var/www/financial-planner/dist/
+sudo systemctl reload nginx
+
+# Check services
+pm2 status
+sudo systemctl status nginx
+curl http://localhost:5001/api/health
+```
+
+## Troubleshooting Quick Fixes
+
+```bash
+# Backend not starting
+pm2 logs financial-planner-backend
+cd backend && node server.js  # Test manually
+
+# Nginx issues
+sudo nginx -t
+sudo tail -f /var/log/nginx/error.log
+
+# Port conflict
+lsof -ti:5001 | xargs kill -9
+pm2 restart financial-planner-backend
+
+# MongoDB connection
+sudo systemctl status mongod
+mongosh  # Test connection
+```
 

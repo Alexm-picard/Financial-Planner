@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useSignInWithEmailAndPassword, useSignInWithGoogle } from 'react-firebase-hooks/auth';
-import { GoogleAuthProvider } from 'firebase/auth';
-import { auth } from '@/lib/firebase-config';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,51 +9,37 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Wallet, Loader2 } from 'lucide-react';
 
 const Login = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
-
-  const [signInWithEmailAndPassword, , loading, authError] = useSignInWithEmailAndPassword(auth);
-  const [signInWithGoogle, , googleLoading] = useSignInWithGoogle(auth);
+  const { loginWithRedirect, isLoading } = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
     try {
-      const result = await signInWithEmailAndPassword(email, password);
-      if (result) {
-        navigate('/');
-      }
+      // Auth0 uses Universal Login - redirect to Auth0 login page
+      await loginWithRedirect({
+        screen_hint: 'login',
+      });
     } catch (err: any) {
-      if (err.code === 'auth/invalid-credential') {
-        setError('Invalid email or password. Please try again.');
-      } else if (err.code === 'auth/user-not-found') {
-        setError('No user found with this email address.');
-      } else if (err.code === 'auth/wrong-password') {
-        setError('Incorrect password. Please try again.');
-      } else if (err.code === 'auth/invalid-email') {
-        setError('Invalid email format.');
-      } else {
-        setError('An error occurred. Please try again.');
-      }
+      setError('An error occurred. Please try again.');
+      console.error('Login error:', err);
     }
   };
 
   const handleGoogleSignIn = async () => {
     setError(null);
     try {
-      const result = await signInWithGoogle();
-      if (result) {
-        navigate('/');
-      }
+      // Redirect to Auth0 with Google connection
+      await loginWithRedirect({
+        connection: 'google-oauth2',
+      });
     } catch (err: any) {
       setError('Google sign-in failed. Please try again.');
+      console.error('Google sign-in error:', err);
     }
   };
-
-  const isLoading = loading || googleLoading;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-primary/5 p-4">
@@ -85,8 +69,6 @@ const Login = () => {
                 id="email"
                 type="email"
                 placeholder="name@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
                 required
                 disabled={isLoading}
               />
@@ -96,14 +78,12 @@ const Login = () => {
               <Input
                 id="password"
                 type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
                 required
                 disabled={isLoading}
               />
             </div>
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {loading ? (
+              {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Signing In...
@@ -130,7 +110,7 @@ const Login = () => {
             onClick={handleGoogleSignIn}
             disabled={isLoading}
           >
-            {googleLoading ? (
+            {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Signing In...
@@ -173,4 +153,3 @@ const Login = () => {
 };
 
 export default Login;
-

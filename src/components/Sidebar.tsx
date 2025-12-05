@@ -1,8 +1,7 @@
 import { Home, Wallet, CreditCard, Settings, History, PlusCircle, BarChart3, Calculator, Calendar, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
-import { signOut } from "firebase/auth";
-import { auth } from "@/lib/firebase-config";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 
 interface SidebarProps {
@@ -24,12 +23,15 @@ const menuItems = [
 export const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
   const navigate = useNavigate();
 
+  const { logout } = useAuth();
+
   const handleSignOut = async () => {
     try {
-      await signOut(auth);
-      navigate('/login');
+      // Logout function uses Auth0 for authentication
+      await logout();
     } catch (error) {
       console.error('Error signing out:', error);
+      navigate('/login');
     }
   };
 

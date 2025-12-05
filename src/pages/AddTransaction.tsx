@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth, db } from '@/lib/firebase-config';
-import { collection, query, where, getDocs, addDoc, doc, updateDoc, Timestamp } from 'firebase/firestore';
+import { useAuth } from '@/hooks/useAuth';
+import { accountService } from '@/services/accountService';
+import { transactionService } from '@/services/transactionService';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -21,7 +21,7 @@ interface Account {
 
 const AddTransaction = () => {
   const navigate = useNavigate();
-  const [user] = useAuthState(auth);
+  const { user } = useAuth();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [formData, setFormData] = useState({
     accountId: '',
@@ -34,17 +34,16 @@ const AddTransaction = () => {
 
   useEffect(() => {
     const fetchAccounts = async () => {
-      if (!auth.currentUser) return;
+      if (!user?.sub) return;
 
       try {
-        const accountsRef = collection(db, 'accounts');
-        const q = query(accountsRef, where('userId', '==', auth.currentUser.uid));
-        const querySnapshot = await getDocs(q);
+        const response = await accountService.getAll(user.sub);
         
-        const accountsData: Account[] = [];
-        querySnapshot.forEach((doc) => {
-          accountsData.push({ id: doc.id, ...doc.data() } as Account);
-        });
+        // Convert MongoDB _id to id
+        const accountsData: Account[] = response.map((account: any) => ({
+          id: account.id || account._id,
+          ...account
+        })) as Account[];
         
         setAccounts(accountsData);
       } catch (error) {
@@ -55,44 +54,41 @@ const AddTransaction = () => {
     };
 
     fetchAccounts();
-  }, []);
+  }, [user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!auth.currentUser || formData.amount === '') return;
+    if (!user?.sub || formData.amount === '') return;
     setIsConfirmDialogOpen(true);
   };
 
   const handleConfirmSubmit = async () => {
-    if (!auth.currentUser || formData.amount === '') return;
+    if (!user?.sub || formData.amount === '') return;
 
     try {
       const account = accounts.find(a => a.id === formData.accountId);
       if (!account) return;
 
-      let amount = formData.amount;
+      let amount = parseFloat(formData.amount);
       if (account.type === 'debt') {
         amount = Math.abs(amount);
       } else {
         amount = formData.transactionType === 'deposit' ? Math.abs(amount) : -Math.abs(amount);
       }
 
-      const accountRef = doc(db, 'accounts', formData.accountId);
-      const newBalance = account.type === 'debt' 
-        ? account.balance + amount
-        : account.balance + amount;
+      const newBalance = account.balance + amount;
 
-      await updateDoc(accountRef, { balance: newBalance });
+      // Update account balance via API
+      await accountService.update(formData.accountId, { balance: newBalance });
 
-      const transactionsRef = collection(db, 'transactions');
-      await addDoc(transactionsRef, {
+      // Create transaction record via API
+      await transactionService.create({
         accountId: formData.accountId,
         accountName: account.name,
-        userId: auth.currentUser.uid,
+        userId: user.sub,
         type: 'update',
         previousBalance: account.balance,
         newBalance: newBalance,
-        timestamp: Timestamp.now(),
         description: formData.description
       });
 

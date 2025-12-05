@@ -7,7 +7,10 @@ import { componentTagger } from "lovable-tagger";
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
-    port: 8080,
+    port: 8080, // Must match Auth0 Dashboard configuration
+  },
+  preview: {
+    port: 8080, // Also use 8080 for preview to match Auth0 configuration
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {

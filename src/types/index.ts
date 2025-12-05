@@ -7,6 +7,7 @@ export interface Account {
   type: 'savings' | 'debt';
   userId: string;
   monthlyPayment?: MonthlyPayment | null;
+  incomeSchedule?: IncomeSchedule | null;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -15,6 +16,12 @@ export interface MonthlyPayment {
   amount: number;
   linkedAccountId: string;
   nextPaymentDate: string;
+}
+
+export interface IncomeSchedule {
+  payDayDate: string;
+  estimatedEarnings: number;
+  frequency: 'weekly' | 'bi-weekly' | 'monthly';
 }
 
 export interface Transaction {

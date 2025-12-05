@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, query, where, getDocs, addDoc, Timestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase-config';
+import { transactionService } from '@/services/transactionService';
 import { Transaction } from '@/types';
 
 export const useTransactions = (userId: string | null) => {
@@ -12,20 +11,16 @@ export const useTransactions = (userId: string | null) => {
     try {
       setIsLoading(true);
       setError(null);
-      const transactionsRef = collection(db, 'transactions');
-      const q = query(transactionsRef, where('userId', '==', uid));
-      const querySnapshot = await getDocs(q);
+      const response = await transactionService.getAll(uid);
       
-      const transactionsData: Transaction[] = [];
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        transactionsData.push({
-          id: doc.id,
-          ...data,
-          timestamp: data.timestamp.toDate()
-        } as Transaction);
-      });
+      // Convert MongoDB _id to id and format timestamp
+      const transactionsData: Transaction[] = response.map((transaction: any) => ({
+        id: transaction.id || transaction._id,
+        ...transaction,
+        timestamp: transaction.timestamp ? new Date(transaction.timestamp) : new Date()
+      })) as Transaction[];
       
+      // Sort by timestamp (newest first)
       setTransactions(
         transactionsData.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
       );
@@ -51,12 +46,7 @@ export const useTransactions = (userId: string | null) => {
     if (!userId) throw new Error('User not authenticated');
     
     try {
-      const transactionsRef = collection(db, 'transactions');
-      await addDoc(transactionsRef, {
-        ...transaction,
-        timestamp: Timestamp.now()
-      });
-      
+      await transactionService.create(transaction);
       await fetchTransactions(userId);
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Failed to add transaction');

@@ -1,6 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth } from '@/lib/firebase-config';
+import { useAuth } from '@/hooks/useAuth';
 import { useAccounts } from '@/hooks/useAccounts';
 import { useTransactions } from '@/hooks/useTransactions';
 import { AccountCard } from '@/components/AccountCard';
@@ -13,9 +12,9 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 import { Loader2 } from 'lucide-react';
 
 const Reports = () => {
-  const [user] = useAuthState(auth);
-  const { accounts, isLoading } = useAccounts(user?.uid || null);
-  const { transactions } = useTransactions(user?.uid || null);
+  const { user } = useAuth();
+  const { accounts, isLoading } = useAccounts(user?.sub || null);
+  const { transactions } = useTransactions(user?.sub || null);
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
   const [dateRange, setDateRange] = useState<'all' | 'month' | 'quarter' | 'year'>('all');
 

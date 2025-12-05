@@ -86,6 +86,11 @@ export const AccountCard = ({
             )}
           >
             {formatCurrency(balance)}
+            {account.incomeSchedule && (
+              <span className="text-lg font-normal text-muted-foreground ml-2">
+                {account.incomeSchedule.frequency === 'weekly' ? 'Per Week' : account.incomeSchedule.frequency === 'bi-weekly' ? 'Bi-Weekly' : 'Per Month'}
+              </span>
+            )}
           </p>
           {account.description && (
             <p className="text-sm text-muted-foreground line-clamp-2">
@@ -107,6 +112,20 @@ export const AccountCard = ({
           </div>
         )}
 
+        {account.incomeSchedule && (
+          <div className="pt-3 border-t">
+            <p className="text-sm text-muted-foreground mb-1 font-medium">
+              Pay Schedule
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Next payday: {new Date(account.incomeSchedule.payDayDate + 'T00:00:00').toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+              })}
+            </p>
+          </div>
+        )}
         {account.monthlyPayment && account.monthlyPayment.amount > 0 && (
           <div className="pt-3 border-t">
             <p className="text-sm text-muted-foreground mb-1 font-medium">

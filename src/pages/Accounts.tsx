@@ -1,6 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth } from '@/lib/firebase-config';
+import { useAuth } from '@/hooks/useAuth';
 import { useAccounts } from '@/hooks/useAccounts';
 import { useTransactions } from '@/hooks/useTransactions';
 import { AccountCard } from '@/components/AccountCard';
@@ -12,9 +11,9 @@ import { formatCurrency } from '@/lib/formatters';
 import { Loader2 } from 'lucide-react';
 
 const Accounts = () => {
-  const [user] = useAuthState(auth);
-  const { accounts, isLoading, updateAccount, deleteAccount } = useAccounts(user?.uid || null);
-  const { addTransaction } = useTransactions(user?.uid || null);
+  const { user } = useAuth();
+  const { accounts, isLoading, updateAccount, deleteAccount } = useAccounts(user?.sub || null);
+  const { addTransaction } = useTransactions(user?.sub || null);
   
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [sortBy, setSortBy] = useState<'name' | 'balance'>('name');

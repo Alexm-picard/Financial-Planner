@@ -23,7 +23,7 @@ export const FinancialSummary = ({ accounts }: FinancialSummaryProps) => {
         <StatCard
           title="Net Worth"
           value={formatCurrency(summary.netWorth)}
-          change={summary.netWorth >= 0 ? "+" : ""}
+          change={summary.netWorth >= 0 ? "" : ""}
           changeType={summary.netWorth >= 0 ? "positive" : "negative"}
           icon={DollarSign}
           iconColor={summary.netWorth >= 0 ? "text-success" : "text-destructive"}

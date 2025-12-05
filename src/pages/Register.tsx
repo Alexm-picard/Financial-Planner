@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useSignInWithGoogle, useCreateUserWithEmailAndPassword } from 'react-firebase-hooks/auth';
-import { doc, setDoc } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase-config';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,36 +10,21 @@ import { Wallet, Loader2 } from 'lucide-react';
 
 const Register = () => {
   const navigate = useNavigate();
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const { loginWithRedirect, isLoading } = useAuth();
   const [errorMessage, setErrorMessage] = useState('');
 
-  const [signInWithGoogle, , googleLoading, googleError] = useSignInWithGoogle(auth);
-  const [createUserWithEmailAndPassword, , emailLoading, emailError] = useCreateUserWithEmailAndPassword(auth);
+  // Note: User document creation happens in Callback.tsx after successful Auth0 authentication
+  // Auth0 redirects to /callback, which then redirects to home page
 
   const handleEmailRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
 
-    if (!name || !email || !password) {
-      setErrorMessage('Please fill in all fields');
-      return;
-    }
-
     try {
-      const userCredential = await createUserWithEmailAndPassword(email, password);
-
-      if (userCredential?.user) {
-        await setDoc(doc(db, 'user', userCredential.user.uid), {
-          uid: userCredential.user.uid,
-          name: name,
-          email: email,
-          createdAt: new Date().toISOString(),
-        });
-
-        navigate('/');
-      }
+      // Auth0 uses Universal Login - redirect to Auth0 signup page
+      await loginWithRedirect({
+        screen_hint: 'signup',
+      });
     } catch (error: any) {
       console.error('Registration error:', error);
       setErrorMessage(error.message || 'Registration failed. Please try again.');
@@ -52,33 +35,15 @@ const Register = () => {
     setErrorMessage('');
 
     try {
-      const result = await signInWithGoogle();
-
-      if (result?.user) {
-        const userDocRef = doc(db, 'user', result.user.uid);
-        await setDoc(userDocRef, {
-          uid: result.user.uid,
-          name: result.user.displayName || name,
-          email: result.user.email,
-          createdAt: new Date().toISOString(),
-        }, { merge: true });
-
-        navigate('/');
-      }
+      // Redirect to Auth0 with Google connection
+      await loginWithRedirect({
+        connection: 'google-oauth2',
+      });
     } catch (error: any) {
       console.error('Google registration error:', error);
       setErrorMessage(error.message || 'Google registration failed. Please try again.');
     }
   };
-
-  const loading = emailLoading || googleLoading;
-
-  if (emailError) {
-    setErrorMessage(emailError.message);
-  }
-  if (googleError) {
-    setErrorMessage(googleError.message);
-  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-primary/5 p-4">
@@ -107,10 +72,8 @@ const Register = () => {
               <Input
                 id="name"
                 type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
                 required
-                disabled={loading}
+                disabled={isLoading}
               />
             </div>
             <div className="space-y-2">
@@ -119,10 +82,8 @@ const Register = () => {
                 id="email"
                 type="email"
                 placeholder="name@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
                 required
-                disabled={loading}
+                disabled={isLoading}
               />
             </div>
             <div className="space-y-2">
@@ -130,14 +91,12 @@ const Register = () => {
               <Input
                 id="password"
                 type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
                 required
-                disabled={loading}
+                disabled={isLoading}
               />
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {emailLoading ? (
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Creating Account...
@@ -162,9 +121,9 @@ const Register = () => {
             variant="outline"
             className="w-full"
             onClick={handleGoogleRegister}
-            disabled={loading}
+            disabled={isLoading}
           >
-            {googleLoading ? (
+            {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Signing In...
@@ -207,4 +166,3 @@ const Register = () => {
 };
 
 export default Register;
-

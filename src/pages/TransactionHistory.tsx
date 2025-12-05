@@ -1,6 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth } from '@/lib/firebase-config';
+import { useAuth } from '@/hooks/useAuth';
 import { useTransactions } from '@/hooks/useTransactions';
 import { Transaction } from '@/types';
 import { formatCurrency, formatDateTime } from '@/lib/formatters';
@@ -11,8 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import { History, Plus, TrendingUp, Trash2, Loader2 } from 'lucide-react';
 
 const TransactionHistory = () => {
-  const [user] = useAuthState(auth);
-  const { transactions, isLoading } = useTransactions(user?.uid || null);
+  const { user } = useAuth();
+  const { transactions, isLoading } = useTransactions(user?.sub || null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [filterType, setFilterType] = useState<'all' | Transaction['type']>('all');
   const [sortBy, setSortBy] = useState<'date' | 'amount'>('date');

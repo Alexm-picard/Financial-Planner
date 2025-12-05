@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth } from '@/lib/firebase-config';
+import { useAuth } from '@/hooks/useAuth';
 import { useAccounts } from '@/hooks/useAccounts';
 import { useTransactions } from '@/hooks/useTransactions';
 import { FinancialSummary } from '@/components/FinancialSummary';
@@ -15,13 +14,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Wallet, CreditCard, Plus, Loader2 } from 'lucide-react';
 import { Account } from '@/types';
 import { formatCurrency } from '@/lib/formatters';
-import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase-config';
 
 const Index = () => {
-  const [user] = useAuthState(auth);
-  const { accounts, isLoading: accountsLoading, addAccount, updateAccount, deleteAccount } = useAccounts(user?.uid || null);
-  const { transactions, addTransaction } = useTransactions(user?.uid || null);
+  const { user } = useAuth();
+  const { accounts, isLoading: accountsLoading, addAccount, updateAccount, deleteAccount } = useAccounts(user?.sub || null);
+  const { transactions, addTransaction } = useTransactions(user?.sub || null);
 
   const [isAddDialogOpen, setIsAddDialogOpen] = useState<boolean>(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState<boolean>(false);
@@ -34,6 +31,7 @@ const Index = () => {
     description: '',
     type: 'savings',
     monthlyPayment: null,
+    incomeSchedule: null,
   });
 
   useEffect(() => {
@@ -59,7 +57,7 @@ const Index = () => {
         await addTransaction({
           accountId,
           accountName: newAccount.name,
-          userId: user.uid,
+          userId: user.sub,
           type: 'create',
           newBalance: newAccount.type === 'debt' ? -Math.abs(newAccount.balance) : Math.abs(newAccount.balance),
           description: `Created ${newAccount.type} account: ${newAccount.name}`,
@@ -73,6 +71,7 @@ const Index = () => {
         description: '',
         type: 'savings',
         monthlyPayment: null,
+        incomeSchedule: null,
       });
       setIsAddDialogOpen(false);
     } catch (error) {
@@ -93,7 +92,7 @@ const Index = () => {
         await addTransaction({
           accountId: selectedAccount.id,
           accountName: selectedAccount.name,
-          userId: user.uid,
+          userId: user.sub,
           type: 'delete',
           previousBalance: selectedAccount.balance,
           description: `Paid off and deleted account ${selectedAccount.name}`,
@@ -107,7 +106,7 @@ const Index = () => {
         await addTransaction({
           accountId: selectedAccount.id,
           accountName: selectedAccount.name,
-          userId: user.uid,
+          userId: user.sub,
           type: 'update',
           previousBalance: selectedAccount.balance,
           newBalance: newBalance,
@@ -129,7 +128,7 @@ const Index = () => {
       await addTransaction({
         accountId: selectedAccount.id,
         accountName: selectedAccount.name,
-        userId: user.uid,
+        userId: user.sub,
         type: 'delete',
         previousBalance: selectedAccount.balance,
         description: `Deleted ${selectedAccount.type} account: ${selectedAccount.name}`,
@@ -150,7 +149,7 @@ const Index = () => {
     <div className="max-w-7xl mx-auto">
       <header className="mb-8">
         <h2 className="text-3xl font-bold mb-2">
-          {user?.displayName ? `Welcome back, ${user.displayName}` : 'Welcome back'}
+          {user?.name ? `Welcome back, ${user.name}` : 'Welcome back'}
         </h2>
         <p className="text-muted-foreground">Here's your financial overview</p>
       </header>
@@ -273,26 +272,54 @@ const Index = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="balance">Amount</Label>
+              <Label htmlFor="balance">
+                {newAccount.incomeSchedule 
+                  ? `Amount paid ${newAccount.incomeSchedule.frequency === 'weekly' ? 'Per week' : newAccount.incomeSchedule.frequency === 'bi-weekly' ? 'Bi-weekly' : 'Per Month'}`
+                  : 'Amount'}
+              </Label>
               <Input
                 id="balance"
                 type="number"
                 value={newAccount.balance}
-                onChange={(e) => setNewAccount({ ...newAccount, balance: parseFloat(e.target.value) || 0 })}
+                onChange={(e) => {
+                  const balance = parseFloat(e.target.value) || 0;
+                  setNewAccount({ 
+                    ...newAccount, 
+                    balance,
+                    incomeSchedule: newAccount.incomeSchedule
+                      ? { ...newAccount.incomeSchedule, estimatedEarnings: balance }
+                      : null
+                  });
+                }}
                 placeholder="0.00"
               />
             </div>
             <div className="space-y-2">
               <Label>Account Type</Label>
               <RadioGroup
-                value={newAccount.type}
-                onValueChange={(value) =>
-                  setNewAccount({
-                    ...newAccount,
-                    type: value as 'savings' | 'debt',
-                    dueDate: value === 'debt' ? newAccount.dueDate || new Date().toISOString().split('T')[0] : null,
-                  })
-                }
+                value={newAccount.incomeSchedule ? 'income' : newAccount.type}
+                onValueChange={(value) => {
+                  if (value === 'income') {
+                    setNewAccount({
+                      ...newAccount,
+                      type: 'savings',
+                      incomeSchedule: {
+                        payDayDate: newAccount.incomeSchedule?.payDayDate || new Date().toISOString().split('T')[0],
+                        estimatedEarnings: newAccount.balance || newAccount.incomeSchedule?.estimatedEarnings || 0,
+                        frequency: newAccount.incomeSchedule?.frequency || 'monthly',
+                      },
+                      dueDate: null,
+                      monthlyPayment: null,
+                    });
+                  } else {
+                    setNewAccount({
+                      ...newAccount,
+                      type: value as 'savings' | 'debt',
+                      dueDate: value === 'debt' ? newAccount.dueDate || new Date().toISOString().split('T')[0] : null,
+                      incomeSchedule: null,
+                    });
+                  }
+                }}
               >
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="savings" id="savings" />
@@ -302,8 +329,60 @@ const Index = () => {
                   <RadioGroupItem value="debt" id="debt" />
                   <Label htmlFor="debt">Debt/Liability</Label>
                 </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="income" id="income" />
+                  <Label htmlFor="income">Income/Payday</Label>
+                </div>
               </RadioGroup>
             </div>
+            {newAccount.incomeSchedule && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="payDayDate">Pay Day Date</Label>
+                  <Input
+                    id="payDayDate"
+                    type="date"
+                    value={newAccount.incomeSchedule.payDayDate || ''}
+                    onChange={(e) => {
+                      const payDayDate = e.target.value;
+                      setNewAccount({
+                        ...newAccount,
+                        incomeSchedule: payDayDate
+                          ? {
+                              payDayDate,
+                              estimatedEarnings: newAccount.balance || newAccount.incomeSchedule?.estimatedEarnings || 0,
+                              frequency: newAccount.incomeSchedule?.frequency || 'monthly',
+                            }
+                          : null,
+                      });
+                    }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="frequency">Frequency</Label>
+                  <Select
+                    value={newAccount.incomeSchedule.frequency || 'monthly'}
+                    onValueChange={(value) =>
+                      setNewAccount({
+                        ...newAccount,
+                        incomeSchedule: newAccount.incomeSchedule
+                          ? { ...newAccount.incomeSchedule, frequency: value as 'weekly' | 'bi-weekly' | 'monthly' }
+                          : null,
+                      })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select frequency" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="weekly">Weekly</SelectItem>
+                      <SelectItem value="bi-weekly">Bi-Weekly</SelectItem>
+                      <SelectItem value="monthly">Monthly</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </>
+            )}
             {newAccount.type === 'debt' && (
               <>
                 <div className="space-y-2">
@@ -410,30 +489,56 @@ const Index = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-balance">Amount</Label>
+                <Label htmlFor="edit-balance">
+                  {selectedAccount.incomeSchedule 
+                    ? `Amount paid ${selectedAccount.incomeSchedule.frequency === 'weekly' ? 'Per week' : selectedAccount.incomeSchedule.frequency === 'bi-weekly' ? 'Bi-weekly' : 'Per Month'}`
+                    : 'Amount'}
+                </Label>
                 <Input
                   id="edit-balance"
                   type="number"
                   value={Math.abs(selectedAccount.balance)}
-                  onChange={(e) =>
-                    setSelectedAccount({ ...selectedAccount, balance: parseFloat(e.target.value) || 0 })
-                  }
+                  onChange={(e) => {
+                    const balance = parseFloat(e.target.value) || 0;
+                    setSelectedAccount({ 
+                      ...selectedAccount, 
+                      balance,
+                      incomeSchedule: selectedAccount.incomeSchedule
+                        ? { ...selectedAccount.incomeSchedule, estimatedEarnings: balance }
+                        : null
+                    });
+                  }}
                 />
               </div>
               <div className="space-y-2">
                 <Label>Account Type</Label>
                 <RadioGroup
-                  value={selectedAccount.type}
-                  onValueChange={(value) =>
-                    setSelectedAccount({
-                      ...selectedAccount,
-                      type: value as 'savings' | 'debt',
-                      dueDate:
-                        value === 'debt'
-                          ? selectedAccount.dueDate || new Date().toISOString().split('T')[0]
-                          : null,
-                    })
-                  }
+                  value={selectedAccount.incomeSchedule ? 'income' : selectedAccount.type}
+                  onValueChange={(value) => {
+                    if (value === 'income') {
+                      setSelectedAccount({
+                        ...selectedAccount,
+                        type: 'savings',
+                        incomeSchedule: {
+                          payDayDate: selectedAccount.incomeSchedule?.payDayDate || new Date().toISOString().split('T')[0],
+                          estimatedEarnings: Math.abs(selectedAccount.balance) || selectedAccount.incomeSchedule?.estimatedEarnings || 0,
+                          frequency: selectedAccount.incomeSchedule?.frequency || 'monthly',
+                        },
+                        dueDate: null,
+                        monthlyPayment: null,
+                      });
+                    } else {
+                      setSelectedAccount({
+                        ...selectedAccount,
+                        type: value as 'savings' | 'debt',
+                        dueDate:
+                          value === 'debt'
+                            ? selectedAccount.dueDate || new Date().toISOString().split('T')[0]
+                            : null,
+                        incomeSchedule: null,
+                      });
+                    }
+                  }}
                 >
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="savings" id="edit-savings" />
@@ -443,8 +548,60 @@ const Index = () => {
                     <RadioGroupItem value="debt" id="edit-debt" />
                     <Label htmlFor="edit-debt">Debt/Liability</Label>
                   </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="income" id="edit-income" />
+                    <Label htmlFor="edit-income">Income/Payday</Label>
+                  </div>
                 </RadioGroup>
               </div>
+              {selectedAccount.incomeSchedule && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-payDayDate">Pay Day Date</Label>
+                    <Input
+                      id="edit-payDayDate"
+                      type="date"
+                      value={selectedAccount.incomeSchedule.payDayDate || ''}
+                      onChange={(e) => {
+                        const payDayDate = e.target.value;
+                        setSelectedAccount({
+                          ...selectedAccount,
+                          incomeSchedule: payDayDate
+                            ? {
+                                payDayDate,
+                                estimatedEarnings: Math.abs(selectedAccount.balance) || selectedAccount.incomeSchedule?.estimatedEarnings || 0,
+                                frequency: selectedAccount.incomeSchedule?.frequency || 'monthly',
+                              }
+                            : null,
+                        });
+                      }}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-frequency">Frequency</Label>
+                    <Select
+                      value={selectedAccount.incomeSchedule.frequency || 'monthly'}
+                      onValueChange={(value) =>
+                        setSelectedAccount({
+                          ...selectedAccount,
+                          incomeSchedule: selectedAccount.incomeSchedule
+                            ? { ...selectedAccount.incomeSchedule, frequency: value as 'weekly' | 'bi-weekly' | 'monthly' }
+                            : null,
+                        })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select frequency" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="weekly">Weekly</SelectItem>
+                        <SelectItem value="bi-weekly">Bi-Weekly</SelectItem>
+                        <SelectItem value="monthly">Monthly</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
+              )}
               {selectedAccount.type === 'debt' && (
                 <>
                   <div className="space-y-2">
